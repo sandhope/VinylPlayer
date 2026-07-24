@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
 import { formatTime } from '../composables/format'
 
@@ -13,6 +13,61 @@ const { state, loadIndex } = usePlayer()
 function thumbShade(i) {
   return 0.55 + (i % 4) * 0.12
 }
+
+// ---- List / Album / Artist views ----
+// viewMode is remembered across restarts. 'list' is the flat playlist; 'album'
+// and 'artist' group tracks under collapsible headers.
+const viewMode = ref(localStorage.getItem('vp-view-mode') || 'list')
+watch(viewMode, (v) => localStorage.setItem('vp-view-mode', v))
+
+// Collapsed group keys, kept as a plain object so Vue tracks reassignments.
+const collapsed = ref({})
+function isCollapsed(key) {
+  return !!collapsed.value[key]
+}
+function toggleGroup(key) {
+  collapsed.value = { ...collapsed.value, [key]: !collapsed.value[key] }
+}
+
+// groups buckets the current tracks by album or artist, keeping each group's
+// first available cover art for the header thumbnail.
+const groups = computed(() => {
+  const mode = viewMode.value
+  const keyOf = (t) =>
+    mode === 'album' ? t.album || '未知专辑' : t.artist || '未知艺术家'
+  const map = new Map()
+  for (const t of state.tracks) {
+    const k = keyOf(t)
+    let g = map.get(k)
+    if (!g) {
+      g = { key: k, name: k, cover: '', tracks: [] }
+      map.set(k, g)
+    }
+    g.tracks.push(t)
+    if (!g.cover && t.coverUrl) g.cover = t.coverUrl
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'zh'))
+})
+
+// rows flattens the sidebar into one render list: plain tracks (list mode) or
+// group headers interleaved with their tracks. Each track row carries its real
+// index into state.tracks so playback maps correctly regardless of view.
+const rows = computed(() => {
+  if (viewMode.value === 'list') {
+    return state.tracks.map((t, i) => ({ type: 'track', track: t, index: i }))
+  }
+  const indexById = new Map(state.tracks.map((t, i) => [t.id, i]))
+  const out = []
+  for (const g of groups.value) {
+    out.push({ type: 'header', group: g })
+    if (!isCollapsed(g.key)) {
+      for (const t of g.tracks) {
+        out.push({ type: 'track', track: t, index: indexById.get(t.id) })
+      }
+    }
+  }
+  return out
+})
 
 // Two-step confirm for clearing the whole list, avoiding an accidental wipe
 // without needing a modal dialog.
@@ -71,42 +126,72 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
       </button>
     </div>
 
+    <div v-if="state.tracks.length" class="view-tabs">
+      <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">列表</button>
+      <button :class="{ active: viewMode === 'album' }" @click="viewMode = 'album'">专辑</button>
+      <button :class="{ active: viewMode === 'artist' }" @click="viewMode = 'artist'">艺术家</button>
+    </div>
+
     <div class="playlist">
-      <div
-        v-for="(t, i) in state.tracks"
-        :key="t.id"
-        class="track-item"
-        :class="{ active: i === state.currentIndex }"
-        @dblclick="loadIndex(i, true)"
-        @click="loadIndex(i, true)"
-      >
-        <span class="track-index">
-          <template v-if="i === state.currentIndex && state.isPlaying">♪</template>
-          <template v-else>{{ i + 1 }}</template>
-        </span>
-        <div class="track-thumb">
-          <img v-if="t.coverUrl" :src="t.coverUrl" alt="" />
-          <svg v-else viewBox="0 0 40 40">
-            <rect width="40" height="40" fill="var(--seed-primary)" :opacity="thumbShade(i)" />
-            <circle cx="20" cy="20" r="12" fill="var(--seed-accent)" opacity="0.5" />
-            <circle cx="20" cy="20" r="4" fill="var(--seed-surface)" />
-          </svg>
-        </div>
-        <div class="track-info">
-          <div class="track-name">{{ t.title }}</div>
-          <div class="track-artist">{{ t.artist }}</div>
-        </div>
-        <span class="track-duration">{{ t.duration ? formatTime(t.duration) : t.format }}</span>
-        <button
-          class="track-remove"
-          title="从列表移除"
-          @click.stop="emit('remove-track', t.id)"
+      <template v-for="row in rows" :key="row.type === 'header' ? 'h:' + row.group.key : row.track.id">
+        <div
+          v-if="row.type === 'header'"
+          class="group-header"
+          @click="toggleGroup(row.group.key)"
         >
-          <svg viewBox="0 0 24 24" width="14" height="14">
-            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          </svg>
-        </button>
-      </div>
+          <span class="group-caret" :class="{ collapsed: isCollapsed(row.group.key) }">
+            <svg viewBox="0 0 24 24" width="12" height="12">
+              <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <div class="group-thumb">
+            <img v-if="row.group.cover" :src="row.group.cover" alt="" />
+            <svg v-else viewBox="0 0 40 40">
+              <rect width="40" height="40" fill="var(--seed-primary)" opacity="0.6" />
+              <circle cx="20" cy="20" r="12" fill="var(--seed-accent)" opacity="0.5" />
+              <circle cx="20" cy="20" r="4" fill="var(--seed-surface)" />
+            </svg>
+          </div>
+          <div class="group-info">
+            <div class="group-name">{{ row.group.name }}</div>
+            <div class="group-meta">{{ row.group.tracks.length }} 首</div>
+          </div>
+        </div>
+        <div
+          v-else
+          class="track-item"
+          :class="{ active: row.index === state.currentIndex, 'in-group': viewMode !== 'list' }"
+          @dblclick="loadIndex(row.index, true)"
+          @click="loadIndex(row.index, true)"
+        >
+          <span class="track-index">
+            <template v-if="row.index === state.currentIndex && state.isPlaying">♪</template>
+            <template v-else-if="viewMode === 'list'">{{ row.index + 1 }}</template>
+          </span>
+          <div class="track-thumb">
+            <img v-if="row.track.coverUrl" :src="row.track.coverUrl" alt="" />
+            <svg v-else viewBox="0 0 40 40">
+              <rect width="40" height="40" fill="var(--seed-primary)" :opacity="thumbShade(row.index)" />
+              <circle cx="20" cy="20" r="12" fill="var(--seed-accent)" opacity="0.5" />
+              <circle cx="20" cy="20" r="4" fill="var(--seed-surface)" />
+            </svg>
+          </div>
+          <div class="track-info">
+            <div class="track-name">{{ row.track.title }}</div>
+            <div class="track-artist">{{ row.track.artist }}</div>
+          </div>
+          <span class="track-duration">{{ row.track.duration ? formatTime(row.track.duration) : row.track.format }}</span>
+          <button
+            class="track-remove"
+            title="从列表移除"
+            @click.stop="emit('remove-track', row.track.id)"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+      </template>
 
       <div v-if="!state.tracks.length" class="empty-hint">
         <p>播放列表为空</p>
@@ -344,6 +429,105 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
 .track-remove:hover {
   color: var(--danger, #d9534f);
   background: color-mix(in srgb, var(--danger, #d9534f) 14%, transparent);
+}
+
+.view-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 0 16px 8px;
+  padding: 3px;
+  background: color-mix(in srgb, var(--seed-fg) 6%, transparent);
+  border-radius: calc(var(--radius) * 0.6);
+}
+
+.view-tabs button {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius) * 0.45);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.view-tabs button:hover {
+  color: var(--fg);
+}
+
+.view-tabs button.active {
+  color: var(--fg);
+  background: var(--surface);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--shadow-color) 30%, transparent);
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-top: 2px;
+  border-radius: calc(var(--radius) * 0.6);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.group-header:hover {
+  background: color-mix(in srgb, var(--seed-fg) 6%, transparent);
+}
+
+.group-caret {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transform: rotate(90deg);
+  transition: transform 0.18s ease;
+}
+
+.group-caret.collapsed {
+  transform: rotate(0deg);
+}
+
+.group-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: calc(var(--radius) * 0.5);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-sunken);
+}
+
+.group-thumb svg,
+.group-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.group-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.group-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-meta {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+.track-item.in-group {
+  padding-left: 22px;
 }
 
 .empty-hint {
