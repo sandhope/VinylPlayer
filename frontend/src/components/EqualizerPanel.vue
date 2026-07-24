@@ -1,9 +1,11 @@
 <script setup>
 import { usePlayer, EQ_FREQUENCIES, EQ_PRESETS } from '../composables/usePlayer'
+import { useSettings } from '../composables/useSettings'
 
 defineEmits(['close'])
 
 const { state, setEqEnabled, setEqGain, applyEqPreset } = usePlayer()
+const { t } = useSettings()
 
 const presetKeys = Object.keys(EQ_PRESETS)
 
@@ -20,13 +22,13 @@ function onGainInput(i, e) {
   <div class="panel eq-panel">
     <div class="panel-header">
       <div class="panel-title">
-        <span>均衡器</span>
+        <span>{{ t('eq.title') }}</span>
         <label class="switch">
           <input type="checkbox" :checked="state.eqEnabled" @change="setEqEnabled($event.target.checked)" />
           <span class="slider-toggle"></span>
         </label>
       </div>
-      <button class="close-btn" aria-label="关闭" @click="$emit('close')">
+      <button class="close-btn" :aria-label="t('common.close')" @click="$emit('close')">
         <svg width="14" height="14" viewBox="0 0 12 12">
           <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
         </svg>
@@ -41,7 +43,7 @@ function onGainInput(i, e) {
         :class="{ active: state.eqPreset === key }"
         @click="applyEqPreset(key)"
       >
-        {{ EQ_PRESETS[key].label }}
+        {{ t('preset.' + key) }}
       </button>
     </div>
 

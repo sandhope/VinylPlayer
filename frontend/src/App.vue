@@ -1,22 +1,30 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import TitleBar from './components/TitleBar.vue'
 import Sidebar from './components/Sidebar.vue'
 import PlayerMain from './components/PlayerMain.vue'
 import StatusBar from './components/StatusBar.vue'
 import EqualizerPanel from './components/EqualizerPanel.vue'
 import LyricsPanel from './components/LyricsPanel.vue'
-import { usePlayer, setBase, hydrateProgress, setProgressBackend, flushProgress } from './composables/usePlayer'
+import SettingsPanel from './components/SettingsPanel.vue'
+import { usePlayer, setBase, hydrateProgress, setProgressBackend, setRememberEnabled, flushProgress } from './composables/usePlayer'
 import { useTheme } from './composables/useTheme'
+import { useSettings } from './composables/useSettings'
 import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL, RemoveTrack, ClearLibrary, GetProgress, SaveProgress, ClearProgress } from '../wailsjs/go/main/App'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 
 const { state, setTracks, addTracks, removeTrack, clearTracks, loadIndex, togglePlay, next, prev } = usePlayer()
 const { init: initTheme } = useTheme()
+const { settings } = useSettings()
 
 const eqOpen = ref(false)
 const lyricsOpen = ref(false)
+const settingsOpen = ref(false)
 const busy = ref(false)
+
+// Keep the player's position-memory feature in sync with the user's setting,
+// applied immediately so it's in effect before the first track loads.
+watch(() => settings.rememberProgress, (v) => setRememberEnabled(v), { immediate: true })
 
 function toggleEq() {
   eqOpen.value = !eqOpen.value
@@ -143,7 +151,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <TitleBar />
+  <TitleBar @open-settings="settingsOpen = true" />
   <div class="app-body">
     <Sidebar
       :busy="busy"
@@ -169,6 +177,9 @@ onBeforeUnmount(() => {
     @toggle-lyrics="toggleLyrics"
     @open-lyrics="openLyrics"
   />
+  <Transition name="fade">
+    <SettingsPanel v-if="settingsOpen" @close="settingsOpen = false" />
+  </Transition>
 </template>
 
 <style scoped>
@@ -195,6 +206,16 @@ onBeforeUnmount(() => {
 .panel-slide-enter-from,
 .panel-slide-leave-to {
   transform: translateX(100%);
+  opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 </style>

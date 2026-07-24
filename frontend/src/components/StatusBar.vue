@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
+import { useSettings } from '../composables/useSettings'
 
 defineProps({
   eqOpen: { type: Boolean, default: false },
@@ -9,12 +10,13 @@ defineProps({
 const emit = defineEmits(['toggle-eq', 'toggle-lyrics', 'open-lyrics'])
 
 const { state, currentTrack } = usePlayer()
+const { t } = useSettings()
 
 const playMode = computed(() => {
-  if (state.shuffle) return '随机播放'
-  if (state.repeat === 'one') return '单曲循环'
-  if (state.repeat === 'all') return '列表循环'
-  return '顺序播放'
+  if (state.shuffle) return t('status.shuffle')
+  if (state.repeat === 'one') return t('status.repeatOne')
+  if (state.repeat === 'all') return t('status.repeatAll')
+  return t('status.sequential')
 })
 
 function cyclePlayMode() {
@@ -33,10 +35,10 @@ function cyclePlayMode() {
 }
 
 const statusText = computed(() => {
-  const t = currentTrack.value
-  if (!t) return '就绪 · 等待播放'
-  const verb = state.isPlaying ? '正在播放' : '已暂停'
-  return `${verb} · ${t.format}${t.album ? ' · ' + t.album : ''}`
+  const track = currentTrack.value
+  if (!track) return t('status.ready')
+  const verb = state.isPlaying ? t('status.playing') : t('status.paused')
+  return `${verb} · ${track.format}${track.album ? ' · ' + track.album : ''}`
 })
 
 // The line currently being sung, shown as a single-line ticker in the center of
@@ -61,7 +63,7 @@ const currentLyric = computed(() => {
           v-if="currentLyric"
           :key="currentLyric"
           class="lyric-ticker"
-          title="点击查看完整歌词"
+          :title="t('status.lyricTickerTitle')"
           @click="emit('open-lyrics')"
         >
           {{ currentLyric }}
@@ -70,8 +72,8 @@ const currentLyric = computed(() => {
     </div>
     <div class="bottom-right">
       <button class="mode-btn" @click="cyclePlayMode">{{ playMode }}</button>
-      <button class="mode-btn" :class="{ active: eqOpen }" @click="emit('toggle-eq')">均衡器</button>
-      <button class="mode-btn" :class="{ active: lyricsOpen }" @click="emit('toggle-lyrics')">歌词</button>
+      <button class="mode-btn" :class="{ active: eqOpen }" @click="emit('toggle-eq')">{{ t('status.eq') }}</button>
+      <button class="mode-btn" :class="{ active: lyricsOpen }" @click="emit('toggle-lyrics')">{{ t('status.lyrics') }}</button>
     </div>
   </footer>
 </template>

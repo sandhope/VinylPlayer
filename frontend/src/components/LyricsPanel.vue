@@ -1,10 +1,12 @@
 <script setup>
 import { watch, ref, nextTick } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
+import { useSettings } from '../composables/useSettings'
 
 defineEmits(['close'])
 
 const { state, currentTrack } = usePlayer()
+const { t } = useSettings()
 const listRef = ref(null)
 
 // Keep the active lyric line centered as playback progresses.
@@ -22,8 +24,8 @@ watch(
 <template>
   <div class="panel lyrics-panel">
     <div class="panel-header">
-      <div class="panel-title">歌词</div>
-      <button class="close-btn" aria-label="关闭" @click="$emit('close')">
+      <div class="panel-title">{{ t('lyrics.title') }}</div>
+      <button class="close-btn" :aria-label="t('common.close')" @click="$emit('close')">
         <svg width="14" height="14" viewBox="0 0 12 12">
           <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
         </svg>
@@ -31,7 +33,7 @@ watch(
     </div>
 
     <div class="now">
-      <div class="now-title">{{ currentTrack?.title || '未播放' }}</div>
+      <div class="now-title">{{ currentTrack?.title || t('lyrics.notPlaying') }}</div>
       <div class="now-artist">{{ currentTrack?.artist || '' }}</div>
     </div>
 
@@ -54,8 +56,8 @@ watch(
           <circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="1.6" fill="none" />
           <circle cx="18" cy="16" r="3" stroke="currentColor" stroke-width="1.6" fill="none" />
         </svg>
-        <p>暂无歌词</p>
-        <span>将同名 .lrc 文件放在音乐旁即可显示</span>
+        <p>{{ t('lyrics.empty') }}</p>
+        <span>{{ t('lyrics.emptyHint') }}</span>
       </div>
     </div>
   </div>

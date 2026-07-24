@@ -1,5 +1,9 @@
 <script setup>
 import { WindowMinimise, WindowToggleMaximise, Quit } from '../../wailsjs/go/main/App'
+import { useSettings } from '../composables/useSettings'
+
+defineEmits(['open-settings'])
+const { t } = useSettings()
 </script>
 
 <template>
@@ -10,20 +14,27 @@ import { WindowMinimise, WindowToggleMaximise, Quit } from '../../wailsjs/go/mai
         <circle cx="12" cy="12" r="3" fill="var(--primary)" />
         <path d="M12 2a10 10 0 0 1 0 20" stroke="var(--accent)" stroke-width="1" opacity="0.5" />
       </svg>
-      <span class="title-bar-text">Vinyl Player · 本地音乐播放器</span>
+      <span class="title-bar-text">Vinyl Player · {{ t('app.subtitle') }}</span>
     </div>
     <div class="window-controls" style="--wails-draggable:no-drag">
-      <button class="win-btn" aria-label="最小化" @click="WindowMinimise">
+      <button class="win-btn" :aria-label="t('titlebar.settings')" :title="t('titlebar.settings')" @click="$emit('open-settings')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <button class="win-btn" :aria-label="t('titlebar.minimize')" @click="WindowMinimise">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect y="5" width="12" height="1.5" fill="currentColor" />
         </svg>
       </button>
-      <button class="win-btn" aria-label="最大化" @click="WindowToggleMaximise">
+      <button class="win-btn" :aria-label="t('titlebar.maximize')" @click="WindowToggleMaximise">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none" />
         </svg>
       </button>
-      <button class="win-btn close" aria-label="关闭" @click="Quit">
+      <button class="win-btn close" :aria-label="t('titlebar.close')" @click="Quit">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
         </svg>

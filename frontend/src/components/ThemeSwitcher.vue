@@ -1,20 +1,22 @@
 <script setup>
 import { useTheme } from '../composables/useTheme'
+import { useSettings } from '../composables/useSettings'
 
 const { current, themes, apply } = useTheme()
+const { t } = useSettings()
 </script>
 
 <template>
   <div class="theme-switcher">
     <div
-      v-for="t in themes"
-      :key="t.id"
+      v-for="th in themes"
+      :key="th.id"
       class="theme-dot"
-      :class="[t.cls, { active: current === t.id }]"
-      :title="t.label"
+      :class="[th.cls, { active: current === th.id }]"
+      :title="t('theme.' + th.id)"
       role="button"
-      :aria-label="t.label"
-      @click="apply(t.id)"
+      :aria-label="t('theme.' + th.id)"
+      @click="apply(th.id)"
     ></div>
   </div>
 </template>

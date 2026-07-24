@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
+import { useSettings } from '../composables/useSettings'
 import { formatTime } from '../composables/format'
 
 defineProps({
@@ -9,6 +10,7 @@ defineProps({
 const emit = defineEmits(['add-folder', 'add-files', 'remove-track', 'clear-all'])
 
 const { state, loadIndex } = usePlayer()
+const { t } = useSettings()
 
 function thumbShade(i) {
   return 0.55 + (i % 4) * 0.12
@@ -33,18 +35,18 @@ function toggleGroup(key) {
 // first available cover art for the header thumbnail.
 const groups = computed(() => {
   const mode = viewMode.value
-  const keyOf = (t) =>
-    mode === 'album' ? t.album || '未知专辑' : t.artist || '未知艺术家'
+  const keyOf = (track) =>
+    mode === 'album' ? track.album || t('sidebar.unknownAlbum') : track.artist || t('sidebar.unknownArtist')
   const map = new Map()
-  for (const t of state.tracks) {
-    const k = keyOf(t)
+  for (const track of state.tracks) {
+    const k = keyOf(track)
     let g = map.get(k)
     if (!g) {
       g = { key: k, name: k, cover: '', tracks: [] }
       map.set(k, g)
     }
-    g.tracks.push(t)
-    if (!g.cover && t.coverUrl) g.cover = t.coverUrl
+    g.tracks.push(track)
+    if (!g.cover && track.coverUrl) g.cover = track.coverUrl
   }
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'zh'))
 })
@@ -89,17 +91,17 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
 <template>
   <aside class="sidebar">
     <div class="sidebar-header">
-      <span class="sidebar-title">播放列表</span>
+      <span class="sidebar-title">{{ t('sidebar.title') }}</span>
       <div class="header-right">
-        <span class="track-count">{{ state.tracks.length }} 首</span>
+        <span class="track-count">{{ t('sidebar.trackCount', { n: state.tracks.length }) }}</span>
         <button
           v-if="state.tracks.length"
           class="clear-btn"
           :class="{ confirming: confirmingClear }"
-          :title="confirmingClear ? '再次点击确认清空' : '清空播放列表'"
+          :title="confirmingClear ? t('sidebar.clearConfirm') : t('sidebar.clear')"
           @click="onClearClick"
         >
-          <template v-if="confirmingClear">确认?</template>
+          <template v-if="confirmingClear">{{ t('sidebar.confirmShort') }}</template>
           <svg v-else viewBox="0 0 24 24" width="14" height="14">
             <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m1 0v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7"
               stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
@@ -114,7 +116,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
           <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"
             stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round" />
         </svg>
-        添加文件夹
+        {{ t('sidebar.addFolder') }}
       </button>
       <button class="add-btn" :disabled="busy" @click="emit('add-files')">
         <svg viewBox="0 0 24 24" width="15" height="15">
@@ -122,14 +124,14 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
             stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round" />
           <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round" />
         </svg>
-        添加文件
+        {{ t('sidebar.addFiles') }}
       </button>
     </div>
 
     <div v-if="state.tracks.length" class="view-tabs">
-      <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">列表</button>
-      <button :class="{ active: viewMode === 'album' }" @click="viewMode = 'album'">专辑</button>
-      <button :class="{ active: viewMode === 'artist' }" @click="viewMode = 'artist'">艺术家</button>
+      <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">{{ t('sidebar.viewList') }}</button>
+      <button :class="{ active: viewMode === 'album' }" @click="viewMode = 'album'">{{ t('sidebar.viewAlbum') }}</button>
+      <button :class="{ active: viewMode === 'artist' }" @click="viewMode = 'artist'">{{ t('sidebar.viewArtist') }}</button>
     </div>
 
     <div class="playlist">
@@ -154,7 +156,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
           </div>
           <div class="group-info">
             <div class="group-name">{{ row.group.name }}</div>
-            <div class="group-meta">{{ row.group.tracks.length }} 首</div>
+            <div class="group-meta">{{ t('sidebar.trackCount', { n: row.group.tracks.length }) }}</div>
           </div>
         </div>
         <div
@@ -183,7 +185,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
           <span class="track-duration">{{ row.track.duration ? formatTime(row.track.duration) : row.track.format }}</span>
           <button
             class="track-remove"
-            title="从列表移除"
+            :title="t('sidebar.removeTrack')"
             @click.stop="emit('remove-track', row.track.id)"
           >
             <svg viewBox="0 0 24 24" width="14" height="14">
@@ -194,8 +196,8 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
       </template>
 
       <div v-if="!state.tracks.length" class="empty-hint">
-        <p>播放列表为空</p>
-        <span>点击上方按钮添加本地音乐</span>
+        <p>{{ t('sidebar.emptyTitle') }}</p>
+        <span>{{ t('sidebar.emptyHint') }}</span>
       </div>
     </div>
   </aside>

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
+import { useSettings } from '../composables/useSettings'
 import { formatTime } from '../composables/format'
 import ThemeSwitcher from './ThemeSwitcher.vue'
 
@@ -16,6 +17,7 @@ const {
   toggleShuffle,
   cycleRepeat,
 } = usePlayer()
+const { t } = useSettings()
 
 const BAR_COUNT = 48
 const bars = Array.from({ length: BAR_COUNT }, (_, i) => i)
@@ -25,7 +27,7 @@ const progressPct = computed(() =>
 )
 const volumePct = computed(() => (state.muted ? 0 : state.volume * 100))
 
-const title = computed(() => currentTrack.value?.title || '未选择曲目')
+const title = computed(() => currentTrack.value?.title || t('player.noTrack'))
 const artist = computed(() => currentTrack.value?.artist || '—')
 
 function barHeight(i) {
@@ -84,7 +86,7 @@ function onVolUp() {
 }
 
 const repeatTitle = computed(() =>
-  state.repeat === 'one' ? '单曲循环' : state.repeat === 'all' ? '列表循环' : '循环播放'
+  state.repeat === 'one' ? t('player.repeatOne') : state.repeat === 'all' ? t('player.repeatAll') : t('player.repeat')
 )
 </script>
 
@@ -132,8 +134,8 @@ const repeatTitle = computed(() =>
       <button
         class="ctrl-btn small"
         :class="{ 'is-on': state.shuffle }"
-        :title="state.shuffle ? '随机播放' : '顺序播放'"
-        :aria-label="state.shuffle ? '随机播放' : '顺序播放'"
+        :title="state.shuffle ? t('player.shuffleOn') : t('player.shuffleOff')"
+        :aria-label="state.shuffle ? t('player.shuffleOn') : t('player.shuffleOff')"
         @click="toggleShuffle"
       >
         <!-- 随机播放：交叉箭头 -->
@@ -147,13 +149,13 @@ const repeatTitle = computed(() =>
             stroke-linecap="round" stroke-linejoin="round" fill="none" />
         </svg>
       </button>
-      <button class="ctrl-btn medium" title="上一首" aria-label="上一首" @click="prev">
+      <button class="ctrl-btn medium" :title="t('player.prev')" :aria-label="t('player.prev')" @click="prev">
         <svg class="icon large" viewBox="0 0 24 24">
           <path d="M19 20L9 12l10-8v16zM5 19V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" fill="none" />
         </svg>
       </button>
-      <button class="ctrl-btn play-btn" title="播放/暂停" aria-label="播放或暂停" @click="togglePlay">
+      <button class="ctrl-btn play-btn" :title="t('player.playPause')" :aria-label="t('player.playPauseAria')" @click="togglePlay">
         <svg v-if="!state.isPlaying" class="icon large" viewBox="0 0 24 24">
           <path d="M6 4l14 8-14 8V4z" fill="currentColor" />
         </svg>
@@ -162,7 +164,7 @@ const repeatTitle = computed(() =>
           <rect x="15" y="4" width="4" height="16" rx="1" fill="currentColor" />
         </svg>
       </button>
-      <button class="ctrl-btn medium" title="下一首" aria-label="下一首" @click="next(false)">
+      <button class="ctrl-btn medium" :title="t('player.next')" :aria-label="t('player.next')" @click="next(false)">
         <svg class="icon large" viewBox="0 0 24 24">
           <path d="M5 4l10 8-10 8V4zM19 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" fill="none" />
@@ -172,7 +174,7 @@ const repeatTitle = computed(() =>
         class="ctrl-btn small"
         :class="{ 'is-on': state.repeat !== 'off' }"
         :title="repeatTitle"
-        aria-label="循环播放"
+        :aria-label="t('player.repeat')"
         @click="cycleRepeat"
       >
         <svg class="icon" viewBox="0 0 24 24">
@@ -188,7 +190,7 @@ const repeatTitle = computed(() =>
     </div>
 
     <div class="volume-section">
-      <button class="ctrl-btn small" aria-label="音量" @click="toggleMute">
+      <button class="ctrl-btn small" :aria-label="t('player.volume')" @click="toggleMute">
         <svg v-if="!state.muted && state.volume > 0" class="icon" viewBox="0 0 24 24">
           <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" />
           <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" stroke="currentColor" stroke-width="2"

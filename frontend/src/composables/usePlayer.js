@@ -72,6 +72,9 @@ const progress = new Map()
 let progressBackend = { save: () => {}, clear: () => {} }
 let lastSaveAt = 0
 let pendingSeek = 0
+// Whether position memory is active; toggled from Settings. When off, we neither
+// save new positions nor resume from saved ones.
+let rememberEnabled = true
 
 // Only remember/restore positions meaningfully into a track and not basically
 // finished.
@@ -93,9 +96,15 @@ export function setProgressBackend(backend) {
   if (backend) progressBackend = backend
 }
 
+// setRememberEnabled gates whether playback positions are remembered/restored.
+export function setRememberEnabled(on) {
+  rememberEnabled = !!on
+}
+
 // rememberProgress stores the current position in memory and, throttled (or
 // when forced), pushes it to the backend.
 function rememberProgress(force = false) {
+  if (!rememberEnabled) return
   const track = state.tracks[state.currentIndex]
   if (!track || !audio) return
   const t = audio.currentTime
@@ -246,7 +255,7 @@ async function loadIndex(index, autoplay = true) {
   state.currentTime = 0
   state.duration = track.duration || 0
   // Queue a resume seek; applied once loadedmetadata reports the duration.
-  const saved = progress.get(track.id) || 0
+  const saved = rememberEnabled ? progress.get(track.id) || 0 : 0
   pendingSeek = saved > RESUME_MIN ? saved : 0
   loadLyrics(track)
   if (autoplay) {
