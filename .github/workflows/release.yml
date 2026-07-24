@@ -9,9 +9,13 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build and Release (Windows)
+  build:
+    name: Build (windows/${{ matrix.arch }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
 
     steps:
       - name: Checkout code
@@ -34,21 +38,47 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
       - name: Build application
-        run: wails build -platform windows/amd64 -clean -o VinylPlayer.exe
+        run: wails build -platform windows/${{ matrix.arch }} -clean -o VinylPlayer.exe
 
       - name: Package artifacts
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}"
-          $zipName = "VinylPlayer-$version-windows-amd64.zip"
-          Compress-Archive -Path build/bin/VinylPlayer.exe -DestinationPath "build/bin/$zipName"
+          $arch = "${{ matrix.arch }}"
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+
+          $exeName = "VinylPlayer-$version-windows-$arch.exe"
+          $zipName = "VinylPlayer-$version-windows-$arch.zip"
+          Copy-Item build/bin/VinylPlayer.exe "dist/$exeName"
+          Compress-Archive -Path build/bin/VinylPlayer.exe -DestinationPath "dist/$zipName"
 
           # Generate SHA-256 checksums so users can verify their downloads.
-          foreach ($file in @("VinylPlayer.exe", $zipName)) {
-            $path = "build/bin/$file"
+          foreach ($file in @($exeName, $zipName)) {
+            $path = "dist/$file"
             $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower()
             "$hash *$file" | Out-File -FilePath "$path.sha256" -Encoding ascii
           }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
 
       - name: Compose release body (download guide + auto notes)
         shell: pwsh
@@ -66,12 +96,16 @@ jobs:
 
           | File | What it is | 中文说明 | Who should use it |
           |------|-----------|---------|-------------------|
-          | `VinylPlayer.exe` | **Standalone executable** — download and double-click to run. No installation needed. | **绿色单文件** — 下载后双击即可运行，无需安装。 | Most users — the simplest option. |
-          | `VinylPlayer-<ver>-windows-amd64.zip` | Same executable, **compressed** into a zip (smaller download). Unzip, then run `VinylPlayer.exe`. | 同一个可执行文件的 **压缩包**（体积更小），解压后运行 `VinylPlayer.exe`。 | Users on slow connections who prefer a smaller download. |
+          | `VinylPlayer-<ver>-windows-amd64.exe` | **Standalone executable** for Intel/AMD (x64) PCs — double-click to run, no installation. | **x64 绿色单文件** — 双击即可运行，无需安装。 | Most users. |
+          | `VinylPlayer-<ver>-windows-amd64.zip` | The x64 executable **compressed** into a zip (smaller download). Unzip, then run the exe. | x64 可执行文件的 **压缩包**（体积更小），解压后运行。 | x64 users on slow connections. |
+          | `VinylPlayer-<ver>-windows-arm64.exe` | Standalone executable for **ARM64** Windows PCs (e.g. Snapdragon X). | **ARM64 绿色单文件** — 适用于 ARM 架构设备。 | ARM64 device users. |
+          | `VinylPlayer-<ver>-windows-arm64.zip` | The ARM64 executable compressed into a zip. | ARM64 可执行文件的压缩包。 | ARM64 users on slow connections. |
           | `*.sha256` | SHA-256 checksum files — verify your download is complete and untampered. | **SHA-256 校验文件** — 用于核对下载文件是否完整未被篡改。 | Anyone who wants to verify integrity. |
 
-          > **Note:** all builds target **Windows x64** and require the WebView2 runtime (pre-installed on most Win10/11 systems).
-          > **说明：** 所有构建均针对 **Windows x64**，需要 WebView2 运行时（大多数 Win10/11 已内置）。
+          > **Architecture:** pick **amd64 (x64)** unless you specifically have an ARM64 Windows device.
+          > **架构：** 除非你使用的是 ARM64 设备（如骁龙本），否则请选择 **amd64 (x64)**。
+          > **Note:** all builds require the WebView2 runtime (pre-installed on most Win10/11 systems).
+          > **说明：** 所有构建均需要 WebView2 运行时（大多数 Win10/11 已内置）。
 
           ## What's Changed
 
@@ -88,6 +122,6 @@ jobs:
           body_path: release_body.md
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
-            build/bin/VinylPlayer.exe
-            build/bin/VinylPlayer-${{ github.ref_name }}-windows-amd64.zip
-            build/bin/*.sha256
+            dist/*.exe
+            dist/*.zip
+            dist/*.sha256
