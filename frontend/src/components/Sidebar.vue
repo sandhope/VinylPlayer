@@ -91,9 +91,11 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
 <template>
   <aside class="sidebar">
     <div class="sidebar-header">
-      <span class="sidebar-title">{{ t('sidebar.title') }}</span>
-      <div class="header-right">
+      <div class="header-left">
+        <span class="sidebar-title">{{ t('sidebar.title') }}</span>
         <span class="track-count">{{ t('sidebar.trackCount', { n: state.tracks.length }) }}</span>
+      </div>
+      <div class="header-right">
         <button
           v-if="state.tracks.length"
           class="clear-btn"
@@ -107,6 +109,40 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
               stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
+        <div v-if="state.tracks.length" class="view-switch">
+          <button
+            :class="{ active: viewMode === 'list' }"
+            :title="t('sidebar.viewList')"
+            :aria-label="t('sidebar.viewList')"
+            @click="viewMode = 'list'"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15">
+              <path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+          <button
+            :class="{ active: viewMode === 'album' }"
+            :title="t('sidebar.viewAlbum')"
+            :aria-label="t('sidebar.viewAlbum')"
+            @click="viewMode = 'album'"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15">
+              <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" fill="none" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" />
+            </svg>
+          </button>
+          <button
+            :class="{ active: viewMode === 'artist' }"
+            :title="t('sidebar.viewArtist')"
+            :aria-label="t('sidebar.viewArtist')"
+            @click="viewMode = 'artist'"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15">
+              <circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.8" fill="none" />
+              <path d="M5.5 19a6.5 6.5 0 0 1 13 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -126,12 +162,6 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
         </svg>
         {{ t('sidebar.addFiles') }}
       </button>
-    </div>
-
-    <div v-if="state.tracks.length" class="view-tabs">
-      <button :class="{ active: viewMode === 'list' }" @click="viewMode = 'list'">{{ t('sidebar.viewList') }}</button>
-      <button :class="{ active: viewMode === 'album' }" @click="viewMode = 'album'">{{ t('sidebar.viewAlbum') }}</button>
-      <button :class="{ active: viewMode === 'artist' }" @click="viewMode = 'artist'">{{ t('sidebar.viewArtist') }}</button>
     </div>
 
     <div class="playlist">
@@ -215,7 +245,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
 }
 
 .sidebar-header {
-  padding: 16px 20px 12px;
+  padding: 16px 16px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -234,6 +264,13 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
   background: color-mix(in srgb, var(--seed-fg) 8%, transparent);
   padding: 2px 8px;
   border-radius: 10px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .header-right {
@@ -433,32 +470,34 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
   background: color-mix(in srgb, var(--danger, #d9534f) 14%, transparent);
 }
 
-.view-tabs {
+.view-switch {
   display: flex;
-  gap: 2px;
-  margin: 0 16px 8px;
-  padding: 3px;
+  gap: 1px;
+  padding: 2px;
   background: color-mix(in srgb, var(--seed-fg) 6%, transparent);
-  border-radius: calc(var(--radius) * 0.6);
+  border-radius: calc(var(--radius) * 0.55);
+  flex-shrink: 0;
 }
 
-.view-tabs button {
-  flex: 1;
-  padding: 5px 0;
-  font-size: 11px;
-  color: var(--text-secondary);
+.view-switch button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  color: var(--text-tertiary);
   background: transparent;
   border: none;
-  border-radius: calc(var(--radius) * 0.45);
+  border-radius: calc(var(--radius) * 0.4);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
-.view-tabs button:hover {
+.view-switch button:hover {
   color: var(--fg);
 }
 
-.view-tabs button.active {
+.view-switch button.active {
   color: var(--fg);
   background: var(--surface);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--shadow-color) 30%, transparent);
