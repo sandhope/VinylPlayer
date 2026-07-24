@@ -7,10 +7,11 @@ import (
 	"github.com/energye/systray"
 )
 
-// trayIconICO holds the multi-resolution Windows icon used for the tray. It is
-// the same icon that gets embedded into the executable.
+// trayIconICO holds a high-contrast Windows icon tuned for small sizes on dark /
+// transparent taskbars. It is intentionally separate from the executable icon
+// (build/windows/icon.ico), which is optimized for larger taskbar rendering.
 //
-//go:embed build/windows/icon.ico
+//go:embed build/windows/tray.ico
 var trayIconICO []byte
 
 // runTray creates the system-tray icon and its context menu, then blocks on the
