@@ -57,3 +57,46 @@ func TestMediaServerServesAudio(t *testing.T) {
 	}
 	t.Logf("range request OK: %s", rr.Header.Get("Content-Range"))
 }
+
+// TestMediaServerServesLyrics verifies that sibling .lrc files are discovered
+// even when they carry an artist suffix (e.g. "水中花 - 谭咏麟.lrc" next to
+// "水中花.mp3") and that the media server returns their contents.
+func TestMediaServerServesLyrics(t *testing.T) {
+	lib := NewLibrary()
+	tracks := lib.scanDirectory("audios")
+	if len(tracks) == 0 {
+		t.Skip("no sample audios found")
+	}
+	base, err := startMediaServer(lib)
+	if err != nil {
+		t.Fatalf("startMediaServer: %v", err)
+	}
+
+	var withLyrics *Track
+	for _, tr := range tracks {
+		if tr.LyricURL != "" {
+			withLyrics = tr
+			break
+		}
+	}
+	if withLyrics == nil {
+		t.Fatal("no track resolved a sibling .lrc file")
+	}
+
+	resp, err := http.Get(base + withLyrics.LyricURL)
+	if err != nil {
+		t.Fatalf("GET lyric: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if len(body) == 0 {
+		t.Fatalf("empty lyric body")
+	}
+	if !strings.Contains(string(body), "[") {
+		t.Fatalf("lyric body does not look like LRC: %.40q", string(body))
+	}
+	t.Logf("served lyrics for %q -> %d bytes", withLyrics.Title, len(body))
+}

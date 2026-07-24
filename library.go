@@ -28,6 +28,9 @@ type Track struct {
 	// re-parsing the file. Unexported, so never serialized to the frontend.
 	coverData []byte
 	coverMime string
+	// lyricFile is the resolved on-disk path of the sibling .lrc file (if any),
+	// so the media server can read it without re-deriving the name.
+	lyricFile string
 }
 
 // supportedExts lists the audio containers the player understands. WebView2
@@ -199,16 +202,62 @@ func (l *Library) buildTrack(abs, format string) *Track {
 		}
 	}
 
-	// Look for a sibling .lrc lyric file (same base name).
-	lrc := strings.TrimSuffix(abs, filepath.Ext(abs)) + ".lrc"
-	if info, err := os.Stat(lrc); err == nil && !info.IsDir() {
+	// Look for a sibling .lrc lyric file. Real-world files often carry an
+	// artist suffix (e.g. "水中花.mp3" alongside "水中花 - 谭咏麟.lrc"), so match
+	// more than the exact base name.
+	if lrc := findLyricFile(abs, t.Artist); lrc != "" {
+		t.lyricFile = lrc
 		t.LyricURL = "/lyric/" + id
 	}
 
 	return t
 }
 
-// lyricPath returns the on-disk path of a track's sibling lyric file.
-func lyricPath(trackPath string) string {
-	return strings.TrimSuffix(trackPath, filepath.Ext(trackPath)) + ".lrc"
+// findLyricFile locates a sibling .lrc lyric file for the given audio path,
+// trying in order: an exact "<base>.lrc"; a "<base> - <artist>.lrc" variant
+// (a common naming convention); and finally any .lrc in the same directory
+// whose name starts with the audio base name followed by a separator. Returns
+// an empty string when nothing matches.
+func findLyricFile(audioPath, artist string) string {
+	dir := filepath.Dir(audioPath)
+	base := strings.TrimSuffix(filepath.Base(audioPath), filepath.Ext(audioPath))
+
+	exact := filepath.Join(dir, base+".lrc")
+	if fi, err := os.Stat(exact); err == nil && !fi.IsDir() {
+		return exact
+	}
+	if artist != "" {
+		withArtist := filepath.Join(dir, base+" - "+artist+".lrc")
+		if fi, err := os.Stat(withArtist); err == nil && !fi.IsDir() {
+			return withArtist
+		}
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ""
+	}
+	lowBase := strings.ToLower(base)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.EqualFold(filepath.Ext(name), ".lrc") {
+			continue
+		}
+		low := strings.ToLower(name)
+		if !strings.HasPrefix(low, lowBase) {
+			continue
+		}
+		// Require a separator after the base name so "水" doesn't match
+		// "水中花 - ...".
+		rest := low[len(lowBase):]
+		if rest == ".lrc" || strings.HasPrefix(rest, " ") ||
+			strings.HasPrefix(rest, "-") || strings.HasPrefix(rest, "_") ||
+			strings.HasPrefix(rest, ".") {
+			return filepath.Join(dir, name)
+		}
+	}
+	return ""
 }

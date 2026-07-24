@@ -116,11 +116,11 @@ func (s *mediaServer) serveCover(w http.ResponseWriter, r *http.Request, id stri
 
 func (s *mediaServer) serveLyric(w http.ResponseWriter, r *http.Request, id string) {
 	t, ok := s.lib.get(id)
-	if !ok || t.LyricURL == "" {
+	if !ok || t.LyricURL == "" || t.lyricFile == "" {
 		http.NotFound(w, r)
 		return
 	}
-	data, err := os.ReadFile(lyricPath(t.Path))
+	data, err := os.ReadFile(t.lyricFile)
 	if err != nil {
 		http.NotFound(w, r)
 		return
