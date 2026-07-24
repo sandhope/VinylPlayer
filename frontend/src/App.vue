@@ -26,6 +26,10 @@ function toggleLyrics() {
   lyricsOpen.value = !lyricsOpen.value
   if (lyricsOpen.value) eqOpen.value = false
 }
+function openLyrics() {
+  lyricsOpen.value = true
+  eqOpen.value = false
+}
 
 async function onAddFolder() {
   if (busy.value) return
@@ -147,6 +151,7 @@ onBeforeUnmount(() => {
     :lyrics-open="lyricsOpen"
     @toggle-eq="toggleEq"
     @toggle-lyrics="toggleLyrics"
+    @open-lyrics="openLyrics"
   />
 </template>
 

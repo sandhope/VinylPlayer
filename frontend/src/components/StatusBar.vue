@@ -6,7 +6,7 @@ defineProps({
   eqOpen: { type: Boolean, default: false },
   lyricsOpen: { type: Boolean, default: false },
 })
-const emit = defineEmits(['toggle-eq', 'toggle-lyrics'])
+const emit = defineEmits(['toggle-eq', 'toggle-lyrics', 'open-lyrics'])
 
 const { state, currentTrack } = usePlayer()
 
@@ -38,6 +38,15 @@ const statusText = computed(() => {
   const verb = state.isPlaying ? '正在播放' : '已暂停'
   return `${verb} · ${t.format}${t.album ? ' · ' + t.album : ''}`
 })
+
+// The line currently being sung, shown as a single-line ticker in the center of
+// the status bar. Empty before the first timestamp or when the track has no
+// lyrics, in which case the ticker is hidden entirely.
+const currentLyric = computed(() => {
+  const i = state.lyricIndex
+  if (i < 0 || !state.lyrics.length) return ''
+  return state.lyrics[i]?.text || ''
+})
 </script>
 
 <template>
@@ -45,6 +54,19 @@ const statusText = computed(() => {
     <div class="bottom-left">
       <div class="status-indicator" :class="{ idle: !state.isPlaying }"></div>
       <span class="status-text">{{ statusText }}</span>
+    </div>
+    <div class="bottom-center">
+      <Transition name="lyric-fade" mode="out-in">
+        <button
+          v-if="currentLyric"
+          :key="currentLyric"
+          class="lyric-ticker"
+          title="点击查看完整歌词"
+          @click="emit('open-lyrics')"
+        >
+          {{ currentLyric }}
+        </button>
+      </Transition>
     </div>
     <div class="bottom-right">
       <button class="mode-btn" @click="cyclePlayMode">{{ playMode }}</button>
@@ -71,7 +93,8 @@ const statusText = computed(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0;
+  flex-shrink: 0;
+  max-width: 40%;
 }
 
 .status-indicator {
@@ -106,6 +129,50 @@ const statusText = computed(() => {
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
+}
+
+.bottom-center {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.lyric-ticker {
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s, background 0.15s;
+}
+
+.lyric-ticker:hover {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--seed-fg) 8%, transparent);
+}
+
+.lyric-fade-enter-active,
+.lyric-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.lyric-fade-enter-from {
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.lyric-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 
 .mode-btn {
