@@ -1,5 +1,5 @@
 <script setup>
-import { WindowMinimise, WindowToggleMaximise, Quit } from '../../wailsjs/go/main/App'
+import { WindowMinimise, WindowToggleMaximise, HideToTray } from '../../wailsjs/go/main/App'
 import { useSettings } from '../composables/useSettings'
 
 defineEmits(['open-settings', 'open-about'])
@@ -41,7 +41,7 @@ const { t } = useSettings()
           <rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none" />
         </svg>
       </button>
-      <button class="win-btn close" :aria-label="t('titlebar.close')" @click="Quit">
+      <button class="win-btn close" :aria-label="t('titlebar.close')" @click="HideToTray">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
         </svg>

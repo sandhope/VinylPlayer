@@ -22,6 +22,10 @@ export function GetProgress() {
   return window['go']['main']['App']['GetProgress']();
 }
 
+export function HideToTray() {
+  return window['go']['main']['App']['HideToTray']();
+}
+
 export function MediaBaseURL() {
   return window['go']['main']['App']['MediaBaseURL']();
 }
@@ -44,6 +48,10 @@ export function RemoveTrack(arg1) {
 
 export function SaveProgress(arg1, arg2) {
   return window['go']['main']['App']['SaveProgress'](arg1, arg2);
+}
+
+export function ShowWindow() {
+  return window['go']['main']['App']['ShowWindow']();
 }
 
 export function WindowMinimise() {

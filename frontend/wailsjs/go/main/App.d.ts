@@ -12,6 +12,8 @@ export function GetInitialTracks():Promise<Array<main.Track>>;
 
 export function GetProgress():Promise<Record<string, number>>;
 
+export function HideToTray():Promise<void>;
+
 export function MediaBaseURL():Promise<string>;
 
 export function OpenFiles():Promise<Array<main.Track>>;
@@ -23,6 +25,8 @@ export function Quit():Promise<void>;
 export function RemoveTrack(arg1:string):Promise<void>;
 
 export function SaveProgress(arg1:string,arg2:number):Promise<void>;
+
+export function ShowWindow():Promise<void>;
 
 export function WindowMinimise():Promise<void>;
 

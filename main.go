@@ -47,6 +47,9 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 44, G: 33, B: 24, A: 1},
 		OnStartup:        app.startup,
+		// Intercept window close so the app minimises to the system tray and keeps
+		// playing, instead of quitting. Real exit happens via the tray menu.
+		OnBeforeClose: app.beforeClose,
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,

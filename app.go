@@ -20,6 +20,10 @@ type App struct {
 	// at startup and updated as the user listens so playback can resume.
 	progressMu sync.Mutex
 	progress   map[string]float64
+
+	// quitting is set once the user really wants to exit (via the tray menu),
+	// so beforeClose knows to allow the shutdown instead of hiding to tray.
+	quitting bool
 }
 
 // NewApp creates a new App application struct. mediaBase is the base URL of the
@@ -45,6 +49,21 @@ func (a *App) startup(ctx context.Context) {
 			runtime.EventsEmit(ctx, "tracks:dropped", tracks)
 		}
 	})
+
+	// Launch the system-tray icon now that the runtime context is available,
+	// so its menu handlers can safely call the window controls.
+	go a.runTray()
+}
+
+// beforeClose runs when the OS asks to close the window (e.g. Alt+F4). Unless
+// the user picked "退出" from the tray, we keep the app alive and just hide the
+// window so playback continues in the background.
+func (a *App) beforeClose(ctx context.Context) (prevent bool) {
+	if a.quitting {
+		return false
+	}
+	runtime.WindowHide(ctx)
+	return true
 }
 
 // GetInitialTracks restores the user's music library on launch. It first tries
@@ -233,6 +252,26 @@ func (a *App) WindowToggleMaximise() {
 	runtime.WindowToggleMaximise(a.ctx)
 }
 
+// HideToTray hides the window to the system tray. The process keeps running and
+// audio continues to play. Bound to the frontend close button.
+func (a *App) HideToTray() {
+	if a.ctx != nil {
+		runtime.WindowHide(a.ctx)
+	}
+}
+
+// ShowWindow restores and focuses the window from the tray.
+func (a *App) ShowWindow() {
+	if a.ctx == nil {
+		return
+	}
+	runtime.WindowShow(a.ctx)
+	runtime.WindowUnminimise(a.ctx)
+}
+
 func (a *App) Quit() {
-	runtime.Quit(a.ctx)
+	a.quitting = true
+	if a.ctx != nil {
+		runtime.Quit(a.ctx)
+	}
 }
