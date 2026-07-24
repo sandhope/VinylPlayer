@@ -16,6 +16,31 @@
 - 📁 **本地媒体库**：可导入文件夹或多个文件，媒体库自动持久化，重启后恢复
 - 🖼️ **无边框窗口**：自定义标题栏与窗口控制
 
+## 📸 界面预览
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="screenshots/dark_retro.png" width="400"/><br/>
+      <sub>复古怀旧</sub>
+    </td>
+    <td align="center">
+      <img src="screenshots/dark_immersed.png" width="400"/><br/>
+      <sub>深色沉浸</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="screenshots/light_modern.png" width="400"/><br/>
+      <sub>浅色现代</sub>
+    </td>
+    <td align="center">
+      <img src="screenshots/light_simple.png" width="400"/><br/>
+      <sub>浅色简洁</sub>
+    </td>
+  </tr>
+</table>
+
 ## 🏗️ 技术架构
 
 | 层次 | 技术 |

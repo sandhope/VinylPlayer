@@ -16,6 +16,31 @@ A desktop audio player built with [Wails](https://wails.io/), powered by a Go ba
 - 📁 **Local media library**: import folders or individual files; the library is persisted and restored on restart
 - 🖼️ **Frameless window**: custom title bar and window controls
 
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="screenshots/dark_retro.png" width="400"/><br/>
+      <sub>Retro (Dark)</sub>
+    </td>
+    <td align="center">
+      <img src="screenshots/dark_immersed.png" width="400"/><br/>
+      <sub>Immersive (Dark)</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="screenshots/light_modern.png" width="400"/><br/>
+      <sub>Modern (Light)</sub>
+    </td>
+    <td align="center">
+      <img src="screenshots/light_simple.png" width="400"/><br/>
+      <sub>Simple (Light)</sub>
+    </td>
+  </tr>
+</table>
+
 ## 🏗️ Architecture
 
 | Layer | Technology |
