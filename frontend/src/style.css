@@ -1,0 +1,112 @@
+/* ===== Fonts ===== */
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 400;
+  src: local(""), url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
+}
+
+/* ===== Design Tokens (from design/canvas prototype) ===== */
+:root {
+  --seed-bg: #2c2118;
+  --seed-fg: #f5e6d3;
+  --seed-primary: #d4874e;
+  --seed-accent: #c9a96e;
+  --seed-surface: #3d2e22;
+  --seed-radius: 12px;
+
+  --bg: var(--seed-bg);
+  --fg: var(--seed-fg);
+  --primary: var(--seed-primary);
+  --accent: var(--seed-accent);
+  --surface: var(--seed-surface);
+  --radius: var(--seed-radius);
+  --surface-elevated: color-mix(in srgb, var(--seed-surface) 85%, var(--seed-fg) 15%);
+  --surface-sunken: color-mix(in srgb, var(--seed-bg) 80%, #000 20%);
+  --border: color-mix(in srgb, var(--seed-fg) 12%, transparent);
+  --text-secondary: color-mix(in srgb, var(--seed-fg) 65%, transparent);
+  --text-tertiary: color-mix(in srgb, var(--seed-fg) 40%, transparent);
+  --primary-glow: color-mix(in srgb, var(--seed-primary) 30%, transparent);
+  --accent-soft: color-mix(in srgb, var(--seed-accent) 20%, transparent);
+  --shadow-color: color-mix(in srgb, var(--seed-bg) 50%, #000 50%);
+  --spectrum-bar: var(--seed-primary);
+  --spectrum-bar-alt: var(--seed-accent);
+  --progress-track: color-mix(in srgb, var(--seed-fg) 15%, transparent);
+  --progress-fill: var(--seed-primary);
+  --knob-size: 14px;
+}
+
+[data-theme="dark"] {
+  --seed-bg: #0a1210;
+  --seed-fg: #e0f2ec;
+  --seed-primary: #2dd4a8;
+  --seed-accent: #67e8c3;
+  --seed-surface: #132420;
+  --seed-radius: 14px;
+}
+
+[data-theme="light"] {
+  --seed-bg: #f8fafc;
+  --seed-fg: #1e293b;
+  --seed-primary: #3b82f6;
+  --seed-accent: #06b6d4;
+  --seed-surface: #ffffff;
+  --seed-radius: 10px;
+}
+
+[data-theme="minimal"] {
+  --seed-bg: #fafafa;
+  --seed-fg: #171717;
+  --seed-primary: #171717;
+  --seed-accent: #737373;
+  --seed-surface: #ffffff;
+  --seed-radius: 4px;
+}
+
+/* ===== Reset & Base ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100vh;
+}
+
+body {
+  font-family: 'Segoe UI', 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+  transition: background 0.4s ease, color 0.4s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbars everywhere */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--seed-fg) 20%, transparent);
+  border-radius: 3px;
+}
+
+button {
+  font-family: inherit;
+}

@@ -1,0 +1,188 @@
+package main
+
+import (
+	"crypto/sha1"
+	"encoding/hex"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+
+	"github.com/dhowden/tag"
+)
+
+// Track describes a single audio file exposed to the frontend.
+type Track struct {
+	ID       string `json:"id"`
+	Path     string `json:"path"`
+	Title    string `json:"title"`
+	Artist   string `json:"artist"`
+	Album    string `json:"album"`
+	Format   string `json:"format"`
+	URL      string `json:"url"`
+	CoverURL string `json:"coverUrl"`
+	LyricURL string `json:"lyricUrl"`
+
+	// cover data kept in-memory so the media server can serve it without
+	// re-parsing the file. Unexported, so never serialized to the frontend.
+	coverData []byte
+	coverMime string
+}
+
+// supportedExts lists the audio containers the player understands. WebView2
+// (Chromium) decodes all of these natively, including FLAC.
+var supportedExts = map[string]string{
+	".mp3":  "MP3",
+	".flac": "FLAC",
+	".wav":  "WAV",
+	".m4a":  "M4A",
+	".ogg":  "OGG",
+}
+
+// Library keeps the registry of known tracks so the media server can resolve
+// an opaque id back to an on-disk path. It also keeps an ordered list of the
+// absolute paths in the library, which is what gets persisted across restarts.
+type Library struct {
+	mu     sync.RWMutex
+	tracks map[string]*Track
+	order  []string // ordered, de-duplicated absolute paths
+}
+
+func NewLibrary() *Library {
+	return &Library{tracks: make(map[string]*Track)}
+}
+
+func (l *Library) get(id string) (*Track, bool) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	t, ok := l.tracks[id]
+	return t, ok
+}
+
+func (l *Library) register(t *Track) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if _, exists := l.tracks[t.ID]; !exists {
+		l.order = append(l.order, t.Path)
+	}
+	l.tracks[t.ID] = t
+}
+
+// orderedPaths returns the current library paths in insertion order.
+func (l *Library) orderedPaths() []string {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	out := make([]string, len(l.order))
+	copy(out, l.order)
+	return out
+}
+
+// idForPath produces a stable id from the absolute path.
+func idForPath(path string) string {
+	sum := sha1.Sum([]byte(strings.ToLower(path)))
+	return hex.EncodeToString(sum[:])[:16]
+}
+
+// scanFiles builds Track entries for the given absolute file paths, reading
+// embedded metadata where available and registering them for serving.
+func (l *Library) scanFiles(paths []string) []*Track {
+	var out []*Track
+	for _, p := range paths {
+		abs, err := filepath.Abs(p)
+		if err != nil {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(abs))
+		format, ok := supportedExts[ext]
+		if !ok {
+			continue
+		}
+		// Skip paths that no longer exist (e.g. stale persisted entries).
+		if info, statErr := os.Stat(abs); statErr != nil || info.IsDir() {
+			continue
+		}
+		t := l.buildTrack(abs, format)
+		l.register(t)
+		out = append(out, t)
+	}
+	return out
+}
+
+// scanDirectory walks a directory (non-recursive by default is not enough for a
+// music player, so we walk recursively) and returns discovered tracks sorted by
+// title.
+func (l *Library) scanDirectory(dir string) []*Track {
+	var paths []string
+	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+		ext := strings.ToLower(filepath.Ext(path))
+		if _, ok := supportedExts[ext]; ok {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	tracks := l.scanFiles(paths)
+	sort.SliceStable(tracks, func(i, j int) bool {
+		return strings.ToLower(tracks[i].Title) < strings.ToLower(tracks[j].Title)
+	})
+	return tracks
+}
+
+// buildTrack extracts metadata for a single file. Missing tags gracefully fall
+// back to the file name so the UI always has something sensible to display.
+func (l *Library) buildTrack(abs, format string) *Track {
+	id := idForPath(abs)
+	base := strings.TrimSuffix(filepath.Base(abs), filepath.Ext(abs))
+
+	t := &Track{
+		ID:     id,
+		Path:   abs,
+		Title:  base,
+		Artist: "未知艺术家",
+		Album:  "",
+		Format: format,
+		URL:    "/media/" + id,
+	}
+
+	if f, err := os.Open(abs); err == nil {
+		defer f.Close()
+		if m, err := tag.ReadFrom(f); err == nil {
+			if v := strings.TrimSpace(m.Title()); v != "" {
+				t.Title = v
+			}
+			if v := strings.TrimSpace(m.Artist()); v != "" {
+				t.Artist = v
+			}
+			if v := strings.TrimSpace(m.Album()); v != "" {
+				t.Album = v
+			}
+			if pic := m.Picture(); pic != nil && len(pic.Data) > 0 {
+				t.coverData = pic.Data
+				t.coverMime = pic.MIMEType
+				if t.coverMime == "" {
+					t.coverMime = "image/jpeg"
+				}
+				t.CoverURL = "/cover/" + id
+			}
+		}
+	}
+
+	// Look for a sibling .lrc lyric file (same base name).
+	lrc := strings.TrimSuffix(abs, filepath.Ext(abs)) + ".lrc"
+	if info, err := os.Stat(lrc); err == nil && !info.IsDir() {
+		t.LyricURL = "/lyric/" + id
+	}
+
+	return t
+}
+
+// lyricPath returns the on-disk path of a track's sibling lyric file.
+func lyricPath(trackPath string) string {
+	return strings.TrimSuffix(trackPath, filepath.Ext(trackPath)) + ".lrc"
+}
