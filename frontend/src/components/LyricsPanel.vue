@@ -135,6 +135,7 @@ watch(
 .lyrics-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 30% 4px;
   text-align: center;
   scroll-behavior: smooth;
