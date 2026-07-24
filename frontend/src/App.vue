@@ -7,6 +7,7 @@ import StatusBar from './components/StatusBar.vue'
 import EqualizerPanel from './components/EqualizerPanel.vue'
 import LyricsPanel from './components/LyricsPanel.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import AboutPanel from './components/AboutPanel.vue'
 import { usePlayer, setBase, hydrateProgress, setProgressBackend, setRememberEnabled, flushProgress } from './composables/usePlayer'
 import { useTheme } from './composables/useTheme'
 import { useSettings } from './composables/useSettings'
@@ -20,6 +21,7 @@ const { settings } = useSettings()
 const eqOpen = ref(false)
 const lyricsOpen = ref(false)
 const settingsOpen = ref(false)
+const aboutOpen = ref(false)
 const busy = ref(false)
 
 // Keep the player's position-memory feature in sync with the user's setting,
@@ -151,7 +153,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <TitleBar @open-settings="settingsOpen = true" />
+  <TitleBar @open-settings="settingsOpen = true" @open-about="aboutOpen = true" />
   <div class="app-body">
     <Sidebar
       :busy="busy"
@@ -179,6 +181,9 @@ onBeforeUnmount(() => {
   />
   <Transition name="fade">
     <SettingsPanel v-if="settingsOpen" @close="settingsOpen = false" />
+  </Transition>
+  <Transition name="fade">
+    <AboutPanel v-if="aboutOpen" @close="aboutOpen = false" />
   </Transition>
 </template>
 

@@ -9,5 +9,9 @@
   "author": {
     "name": "zhangfuxing",
     "email": "fuxing.zhang@qq.com"
+  },
+  "info": {
+    "productName": "Vinyl Player",
+    "productVersion": "0.1.0"
   }
 }

@@ -2,7 +2,7 @@
 import { WindowMinimise, WindowToggleMaximise, Quit } from '../../wailsjs/go/main/App'
 import { useSettings } from '../composables/useSettings'
 
-defineEmits(['open-settings'])
+defineEmits(['open-settings', 'open-about'])
 const { t } = useSettings()
 </script>
 
@@ -17,6 +17,13 @@ const { t } = useSettings()
       <span class="title-bar-text">Vinyl Player · {{ t('app.subtitle') }}</span>
     </div>
     <div class="window-controls" style="--wails-draggable:no-drag">
+      <button class="win-btn" :aria-label="t('titlebar.about')" :title="t('titlebar.about')" @click="$emit('open-about')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+          <path d="M12 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <circle cx="12" cy="8" r="1" fill="currentColor" />
+        </svg>
+      </button>
       <button class="win-btn" :aria-label="t('titlebar.settings')" :title="t('titlebar.settings')" @click="$emit('open-settings')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />

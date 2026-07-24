@@ -125,11 +125,11 @@ VinylPlayer/
 <table>
   <tr>
     <td>
-      <img src="sponsor/weixin.jpg" width="200"/>
+      <img src="frontend/public/donate-wechat.jpg" width="200"/>
     </td>
     <td width="100" align="center" > 🙏 </td>
     <td>
-      <img src="sponsor/alipay.jpg" width="200"/>
+      <img src="frontend/public/donate-alipay.jpg" width="200"/>
     </td>
   </tr>
 </table>
