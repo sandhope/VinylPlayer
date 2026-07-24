@@ -10,8 +10,16 @@ export function ClearLibrary() {
   return window['go']['main']['App']['ClearLibrary']();
 }
 
+export function ClearProgress(arg1) {
+  return window['go']['main']['App']['ClearProgress'](arg1);
+}
+
 export function GetInitialTracks() {
   return window['go']['main']['App']['GetInitialTracks']();
+}
+
+export function GetProgress() {
+  return window['go']['main']['App']['GetProgress']();
 }
 
 export function MediaBaseURL() {
@@ -32,6 +40,10 @@ export function Quit() {
 
 export function RemoveTrack(arg1) {
   return window['go']['main']['App']['RemoveTrack'](arg1);
+}
+
+export function SaveProgress(arg1, arg2) {
+  return window['go']['main']['App']['SaveProgress'](arg1, arg2);
 }
 
 export function WindowMinimise() {

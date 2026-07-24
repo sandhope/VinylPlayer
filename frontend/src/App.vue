@@ -6,9 +6,9 @@ import PlayerMain from './components/PlayerMain.vue'
 import StatusBar from './components/StatusBar.vue'
 import EqualizerPanel from './components/EqualizerPanel.vue'
 import LyricsPanel from './components/LyricsPanel.vue'
-import { usePlayer, setBase } from './composables/usePlayer'
+import { usePlayer, setBase, hydrateProgress, setProgressBackend, flushProgress } from './composables/usePlayer'
 import { useTheme } from './composables/useTheme'
-import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL, RemoveTrack, ClearLibrary } from '../wailsjs/go/main/App'
+import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL, RemoveTrack, ClearLibrary, GetProgress, SaveProgress, ClearProgress } from '../wailsjs/go/main/App'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 
 const { state, setTracks, addTracks, removeTrack, clearTracks, loadIndex, togglePlay, next, prev } = usePlayer()
@@ -106,10 +106,21 @@ onMounted(async () => {
       if (wasEmpty) loadIndex(0, false)
     }
   })
+  // Wire playback-progress persistence and seed saved positions before the
+  // first track loads so it can resume where the user left off.
+  setProgressBackend({
+    save: (id, sec) => SaveProgress(id, sec).catch(() => {}),
+    clear: (id) => ClearProgress(id).catch(() => {}),
+  })
   try {
     // Resolve the media server base URL before ingesting tracks so their
     // audio/cover/lyric URLs are built against the correct origin.
     setBase(await MediaBaseURL())
+    try {
+      hydrateProgress(await GetProgress())
+    } catch (e) {
+      /* no saved progress */
+    }
     const tracks = await GetInitialTracks()
     if (tracks && tracks.length) {
       setTracks(tracks)
@@ -118,10 +129,15 @@ onMounted(async () => {
   } catch (e) {
     console.warn('initial load failed:', e)
   }
+  // Best-effort save when the window is closing (periodic + pause saves cover
+  // the rest).
+  window.addEventListener('beforeunload', flushProgress)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('beforeunload', flushProgress)
+  flushProgress()
   if (unbindDrop) unbindDrop()
 })
 </script>

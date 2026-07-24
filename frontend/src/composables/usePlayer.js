@@ -64,6 +64,63 @@ function ingest(t) {
   }
 }
 
+// ---- Playback progress (resume where the user left off) ----
+// A map of trackId -> last playback position (seconds), seeded from the backend
+// at startup and kept in sync as the user listens. Persistence is delegated to
+// an injected backend so this module stays free of Wails imports.
+const progress = new Map()
+let progressBackend = { save: () => {}, clear: () => {} }
+let lastSaveAt = 0
+let pendingSeek = 0
+
+// Only remember/restore positions meaningfully into a track and not basically
+// finished.
+const RESUME_MIN = 5
+const RESUME_END_GUARD = 5
+
+// hydrateProgress seeds the in-memory positions from a { id: seconds } map.
+export function hydrateProgress(map) {
+  progress.clear()
+  if (!map) return
+  for (const [id, sec] of Object.entries(map)) {
+    const s = Number(sec)
+    if (id && s > RESUME_MIN) progress.set(id, s)
+  }
+}
+
+// setProgressBackend injects the persistence callbacks (backed by Wails).
+export function setProgressBackend(backend) {
+  if (backend) progressBackend = backend
+}
+
+// rememberProgress stores the current position in memory and, throttled (or
+// when forced), pushes it to the backend.
+function rememberProgress(force = false) {
+  const track = state.tracks[state.currentIndex]
+  if (!track || !audio) return
+  const t = audio.currentTime
+  const d = state.duration
+  if (t < RESUME_MIN || (d && t > d - RESUME_END_GUARD)) return
+  progress.set(track.id, t)
+  const now = Date.now()
+  if (force || now - lastSaveAt > 4000) {
+    lastSaveAt = now
+    progressBackend.save(track.id, t)
+  }
+}
+
+// clearProgress forgets a track's saved position (used when it finishes).
+function clearProgress(track) {
+  if (!track) return
+  progress.delete(track.id)
+  progressBackend.clear(track.id)
+}
+
+// flushProgress force-saves the current position (e.g. on app exit).
+export function flushProgress() {
+  rememberProgress(true)
+}
+
 // Web Audio objects (created lazily on first user-initiated playback).
 let audio = null
 let audioCtx = null
@@ -84,10 +141,21 @@ function ensureAudio() {
     state.duration = audio.duration || 0
     const t = state.tracks[state.currentIndex]
     if (t) t.duration = state.duration
+    // Resume from the saved position if we have one for this track.
+    if (pendingSeek > 0 && state.duration && pendingSeek < state.duration - RESUME_END_GUARD) {
+      try {
+        audio.currentTime = pendingSeek
+      } catch (e) {
+        /* seeking not ready yet; ignore */
+      }
+      state.currentTime = pendingSeek
+    }
+    pendingSeek = 0
   })
   audio.addEventListener('timeupdate', () => {
     state.currentTime = audio.currentTime
     updateLyricIndex()
+    rememberProgress()
   })
   audio.addEventListener('play', () => {
     state.isPlaying = true
@@ -96,6 +164,7 @@ function ensureAudio() {
   audio.addEventListener('pause', () => {
     state.isPlaying = false
     stopSpectrum()
+    rememberProgress(true)
   })
   audio.addEventListener('ended', onEnded)
 }
@@ -167,11 +236,18 @@ function mediaUrl(track) {
 async function loadIndex(index, autoplay = true) {
   if (index < 0 || index >= state.tracks.length) return
   ensureAudio()
+  // Save the outgoing track's position before switching away.
+  if (state.currentIndex >= 0 && state.currentIndex !== index) {
+    rememberProgress(true)
+  }
   state.currentIndex = index
   const track = state.tracks[index]
   audio.src = mediaUrl(track)
   state.currentTime = 0
   state.duration = track.duration || 0
+  // Queue a resume seek; applied once loadedmetadata reports the duration.
+  const saved = progress.get(track.id) || 0
+  pendingSeek = saved > RESUME_MIN ? saved : 0
   loadLyrics(track)
   if (autoplay) {
     await play()
@@ -208,6 +284,7 @@ function togglePlay() {
 }
 
 function onEnded() {
+  clearProgress(state.tracks[state.currentIndex])
   if (state.repeat === 'one') {
     audio.currentTime = 0
     play()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -14,12 +15,17 @@ type App struct {
 	ctx       context.Context
 	lib       *Library
 	mediaBase string
+
+	// progress holds per-track playback positions (track id -> seconds), loaded
+	// at startup and updated as the user listens so playback can resume.
+	progressMu sync.Mutex
+	progress   map[string]float64
 }
 
 // NewApp creates a new App application struct. mediaBase is the base URL of the
 // loopback media server (e.g. "http://127.0.0.1:52341").
 func NewApp(lib *Library, mediaBase string) *App {
-	return &App{lib: lib, mediaBase: mediaBase}
+	return &App{lib: lib, mediaBase: mediaBase, progress: loadProgress()}
 }
 
 // MediaBaseURL exposes the media server's base URL so the frontend can build
@@ -158,12 +164,63 @@ func (a *App) AddPaths(paths []string) []*Track {
 func (a *App) RemoveTrack(id string) {
 	a.lib.remove(id)
 	a.persist()
+	a.ClearProgress(id)
 }
 
 // ClearLibrary empties the whole library and persists the change.
 func (a *App) ClearLibrary() {
 	a.lib.clear()
 	a.persist()
+	a.progressMu.Lock()
+	a.progress = map[string]float64{}
+	a.progressMu.Unlock()
+	_ = saveProgressFile(map[string]float64{})
+}
+
+// ---- Playback progress ----
+
+// GetProgress returns the saved playback position (seconds) for every track id
+// that has one, so the frontend can resume where the user left off.
+func (a *App) GetProgress() map[string]float64 {
+	a.progressMu.Lock()
+	defer a.progressMu.Unlock()
+	return a.cloneProgressLocked()
+}
+
+// SaveProgress records the playback position (seconds) for a track and writes
+// it to disk so it survives restarts.
+func (a *App) SaveProgress(id string, seconds float64) {
+	if id == "" || seconds <= 0 {
+		return
+	}
+	a.progressMu.Lock()
+	a.progress[id] = seconds
+	snapshot := a.cloneProgressLocked()
+	a.progressMu.Unlock()
+	_ = saveProgressFile(snapshot)
+}
+
+// ClearProgress forgets a track's saved position (e.g. once it finishes).
+func (a *App) ClearProgress(id string) {
+	a.progressMu.Lock()
+	if _, ok := a.progress[id]; !ok {
+		a.progressMu.Unlock()
+		return
+	}
+	delete(a.progress, id)
+	snapshot := a.cloneProgressLocked()
+	a.progressMu.Unlock()
+	_ = saveProgressFile(snapshot)
+}
+
+// cloneProgressLocked returns a copy of the progress map. Callers must hold
+// progressMu.
+func (a *App) cloneProgressLocked() map[string]float64 {
+	out := make(map[string]float64, len(a.progress))
+	for k, v := range a.progress {
+		out[k] = v
+	}
+	return out
 }
 
 // ---- Window controls (frameless window) ----

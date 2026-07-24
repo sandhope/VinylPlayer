@@ -6,7 +6,11 @@ export function AddPaths(arg1:Array<string>):Promise<Array<main.Track>>;
 
 export function ClearLibrary():Promise<void>;
 
+export function ClearProgress(arg1:string):Promise<void>;
+
 export function GetInitialTracks():Promise<Array<main.Track>>;
+
+export function GetProgress():Promise<Record<string, number>>;
 
 export function MediaBaseURL():Promise<string>;
 
@@ -17,6 +21,8 @@ export function OpenFolder():Promise<Array<main.Track>>;
 export function Quit():Promise<void>;
 
 export function RemoveTrack(arg1:string):Promise<void>;
+
+export function SaveProgress(arg1:string,arg2:number):Promise<void>;
 
 export function WindowMinimise():Promise<void>;
 
