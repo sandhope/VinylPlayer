@@ -132,12 +132,18 @@ const repeatTitle = computed(() =>
       <button
         class="ctrl-btn small"
         :class="{ 'is-on': state.shuffle }"
-        title="随机播放"
-        aria-label="随机播放"
+        :title="state.shuffle ? '随机播放' : '顺序播放'"
+        :aria-label="state.shuffle ? '随机播放' : '顺序播放'"
         @click="toggleShuffle"
       >
-        <svg class="icon" viewBox="0 0 24 24">
+        <!-- 随机播放：交叉箭头 -->
+        <svg v-if="state.shuffle" class="icon" viewBox="0 0 24 24">
           <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        </svg>
+        <!-- 顺序播放：平行直箭头 -->
+        <svg v-else class="icon" viewBox="0 0 24 24">
+          <path d="M3 7h13M3 17h13M14 4l3 3-3 3M14 14l3 3-3 3" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round" fill="none" />
         </svg>
       </button>
