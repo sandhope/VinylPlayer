@@ -370,6 +370,49 @@ function addTracks(tracks) {
   return fresh.length
 }
 
+// resetPlayback tears down the current track (used when the playing track is
+// removed or the library is cleared).
+function resetPlayback() {
+  pause()
+  if (audio) audio.removeAttribute('src')
+  state.currentIndex = -1
+  state.currentTime = 0
+  state.duration = 0
+  state.isPlaying = false
+  state.lyrics = []
+  state.lyricIndex = -1
+  stopSpectrum()
+}
+
+// removeTrack drops a single track and keeps playback coherent: removing the
+// current track advances to whatever now occupies its slot; removing an earlier
+// track shifts the current index so the same song keeps playing.
+function removeTrack(id) {
+  const idx = state.tracks.findIndex((t) => t.id === id)
+  if (idx < 0) return
+  const wasCurrent = idx === state.currentIndex
+  const wasPlaying = state.isPlaying
+  state.tracks.splice(idx, 1)
+
+  if (state.tracks.length === 0) {
+    resetPlayback()
+    return
+  }
+  if (wasCurrent) {
+    const newIdx = Math.min(idx, state.tracks.length - 1)
+    state.currentIndex = -1 // force loadIndex to treat this as a fresh load
+    loadIndex(newIdx, wasPlaying)
+  } else if (idx < state.currentIndex) {
+    state.currentIndex -= 1
+  }
+}
+
+// clearTracks empties the whole playlist and stops playback.
+function clearTracks() {
+  state.tracks = []
+  resetPlayback()
+}
+
 const currentTrack = computed(() =>
   state.currentIndex >= 0 ? state.tracks[state.currentIndex] : null
 )
@@ -380,6 +423,8 @@ export function usePlayer() {
     currentTrack,
     setTracks,
     addTracks,
+    removeTrack,
+    clearTracks,
     loadIndex,
     play,
     pause,

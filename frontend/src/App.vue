@@ -8,9 +8,10 @@ import EqualizerPanel from './components/EqualizerPanel.vue'
 import LyricsPanel from './components/LyricsPanel.vue'
 import { usePlayer, setBase } from './composables/usePlayer'
 import { useTheme } from './composables/useTheme'
-import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL } from '../wailsjs/go/main/App'
+import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL, RemoveTrack, ClearLibrary } from '../wailsjs/go/main/App'
+import { EventsOn } from '../wailsjs/runtime/runtime'
 
-const { state, setTracks, addTracks, loadIndex, togglePlay, next, prev } = usePlayer()
+const { state, setTracks, addTracks, removeTrack, clearTracks, loadIndex, togglePlay, next, prev } = usePlayer()
 const { init: initTheme } = useTheme()
 
 const eqOpen = ref(false)
@@ -60,6 +61,16 @@ async function onAddFiles() {
   }
 }
 
+function onRemoveTrack(id) {
+  removeTrack(id)
+  RemoveTrack(id).catch((e) => console.warn('RemoveTrack failed:', e))
+}
+
+function onClearAll() {
+  clearTracks()
+  ClearLibrary().catch((e) => console.warn('ClearLibrary failed:', e))
+}
+
 function onKeydown(e) {
   const tag = e.target && e.target.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA') return
@@ -77,9 +88,20 @@ function onKeydown(e) {
   }
 }
 
+let unbindDrop = null
+
 onMounted(async () => {
   initTheme()
   window.addEventListener('keydown', onKeydown)
+  // Native OS file drops (audio files or folders) are imported by the backend,
+  // which emits the freshly scanned tracks back to us.
+  unbindDrop = EventsOn('tracks:dropped', (tracks) => {
+    if (tracks && tracks.length) {
+      const wasEmpty = state.tracks.length === 0
+      addTracks(tracks)
+      if (wasEmpty) loadIndex(0, false)
+    }
+  })
   try {
     // Resolve the media server base URL before ingesting tracks so their
     // audio/cover/lyric URLs are built against the correct origin.
@@ -96,13 +118,20 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  if (unbindDrop) unbindDrop()
 })
 </script>
 
 <template>
   <TitleBar />
   <div class="app-body">
-    <Sidebar :busy="busy" @add-folder="onAddFolder" @add-files="onAddFiles" />
+    <Sidebar
+      :busy="busy"
+      @add-folder="onAddFolder"
+      @add-files="onAddFiles"
+      @remove-track="onRemoveTrack"
+      @clear-all="onClearAll"
+    />
     <div class="stage">
       <PlayerMain />
       <Transition name="panel-slide">
@@ -126,6 +155,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex: 1;
   overflow: hidden;
+  /* Opt the whole content area in as a native file-drop target (Wails). */
+  --wails-drop-target: drop;
 }
 
 .stage {

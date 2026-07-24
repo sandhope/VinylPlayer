@@ -78,6 +78,32 @@ func (l *Library) orderedPaths() []string {
 	return out
 }
 
+// remove deletes a track (by id) from the registry and drops its path from the
+// ordered list, so the change is reflected in the persisted library.
+func (l *Library) remove(id string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	t, ok := l.tracks[id]
+	if !ok {
+		return
+	}
+	delete(l.tracks, id)
+	for i, p := range l.order {
+		if p == t.Path {
+			l.order = append(l.order[:i], l.order[i+1:]...)
+			break
+		}
+	}
+}
+
+// clear empties the whole library.
+func (l *Library) clear() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.tracks = make(map[string]*Track)
+	l.order = nil
+}
+
 // idForPath produces a stable id from the absolute path.
 func idForPath(path string) string {
 	sum := sha1.Sum([]byte(strings.ToLower(path)))

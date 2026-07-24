@@ -38,6 +38,13 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
+		// Enable native OS file drops so users can drag audio files/folders onto
+		// the window. Elements opt in via the --wails-drop-target CSS property.
+		DragAndDrop: &options.DragAndDrop{
+			EnableFileDrop:  true,
+			CSSDropProperty: "--wails-drop-target",
+			CSSDropValue:    "drop",
+		},
 		BackgroundColour: &options.RGBA{R: 44, G: 33, B: 24, A: 1},
 		OnStartup:        app.startup,
 		Windows: &windows.Options{

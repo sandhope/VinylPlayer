@@ -1,24 +1,56 @@
 <script setup>
+import { ref, onBeforeUnmount } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
 import { formatTime } from '../composables/format'
 
 defineProps({
   busy: { type: Boolean, default: false },
 })
-const emit = defineEmits(['add-folder', 'add-files'])
+const emit = defineEmits(['add-folder', 'add-files', 'remove-track', 'clear-all'])
 
 const { state, loadIndex } = usePlayer()
 
 function thumbShade(i) {
   return 0.55 + (i % 4) * 0.12
 }
+
+// Two-step confirm for clearing the whole list, avoiding an accidental wipe
+// without needing a modal dialog.
+const confirmingClear = ref(false)
+let confirmTimer = null
+function onClearClick() {
+  if (confirmingClear.value) {
+    clearTimeout(confirmTimer)
+    confirmingClear.value = false
+    emit('clear-all')
+    return
+  }
+  confirmingClear.value = true
+  confirmTimer = setTimeout(() => (confirmingClear.value = false), 2500)
+}
+onBeforeUnmount(() => clearTimeout(confirmTimer))
 </script>
 
 <template>
   <aside class="sidebar">
     <div class="sidebar-header">
       <span class="sidebar-title">播放列表</span>
-      <span class="track-count">{{ state.tracks.length }} 首</span>
+      <div class="header-right">
+        <span class="track-count">{{ state.tracks.length }} 首</span>
+        <button
+          v-if="state.tracks.length"
+          class="clear-btn"
+          :class="{ confirming: confirmingClear }"
+          :title="confirmingClear ? '再次点击确认清空' : '清空播放列表'"
+          @click="onClearClick"
+        >
+          <template v-if="confirmingClear">确认?</template>
+          <svg v-else viewBox="0 0 24 24" width="14" height="14">
+            <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m1 0v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7"
+              stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="sidebar-actions">
@@ -65,6 +97,15 @@ function thumbShade(i) {
           <div class="track-artist">{{ t.artist }}</div>
         </div>
         <span class="track-duration">{{ t.duration ? formatTime(t.duration) : t.format }}</span>
+        <button
+          class="track-remove"
+          title="从列表移除"
+          @click.stop="emit('remove-track', t.id)"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
       </div>
 
       <div v-if="!state.tracks.length" class="empty-hint">
@@ -106,6 +147,38 @@ function thumbShade(i) {
   background: color-mix(in srgb, var(--seed-fg) 8%, transparent);
   padding: 2px 8px;
   border-radius: 10px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.clear-btn:hover {
+  color: var(--danger, #d9534f);
+  background: color-mix(in srgb, var(--danger, #d9534f) 12%, transparent);
+}
+
+.clear-btn.confirming {
+  color: #fff;
+  background: var(--danger, #d9534f);
+  border-color: var(--danger, #d9534f);
 }
 
 .sidebar-actions {
@@ -236,6 +309,41 @@ function thumbShade(i) {
   color: var(--text-tertiary);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+  transition: opacity 0.15s;
+}
+
+.track-remove {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.track-item:hover .track-remove {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.track-item:hover .track-duration {
+  opacity: 0;
+}
+
+.track-remove:hover {
+  color: var(--danger, #d9534f);
+  background: color-mix(in srgb, var(--danger, #d9534f) 14%, transparent);
 }
 
 .empty-hint {

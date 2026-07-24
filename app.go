@@ -29,9 +29,16 @@ func (a *App) MediaBaseURL() string {
 }
 
 // startup is called when the app starts. The context is saved so we can call
-// the runtime methods.
+// the runtime methods, and we register the native file-drop handler so tracks
+// dragged onto the window get imported.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	runtime.OnFileDrop(ctx, func(_, _ int, paths []string) {
+		tracks := a.AddPaths(paths)
+		if len(tracks) > 0 {
+			runtime.EventsEmit(ctx, "tracks:dropped", tracks)
+		}
+	})
 }
 
 // GetInitialTracks restores the user's music library on launch. It first tries
@@ -123,6 +130,40 @@ func (a *App) OpenFiles() ([]*Track, error) {
 		return []*Track{}, nil
 	}
 	return tracks, nil
+}
+
+// AddPaths ingests a mix of files and directories (used by drag-and-drop),
+// registering every supported track found and persisting the library.
+func (a *App) AddPaths(paths []string) []*Track {
+	var out []*Track
+	for _, p := range paths {
+		info, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		if info.IsDir() {
+			out = append(out, a.lib.scanDirectory(p)...)
+		} else {
+			out = append(out, a.lib.scanFiles([]string{p})...)
+		}
+	}
+	a.persist()
+	if out == nil {
+		return []*Track{}
+	}
+	return out
+}
+
+// RemoveTrack drops a single track from the library and persists the change.
+func (a *App) RemoveTrack(id string) {
+	a.lib.remove(id)
+	a.persist()
+}
+
+// ClearLibrary empties the whole library and persists the change.
+func (a *App) ClearLibrary() {
+	a.lib.clear()
+	a.persist()
 }
 
 // ---- Window controls (frameless window) ----
