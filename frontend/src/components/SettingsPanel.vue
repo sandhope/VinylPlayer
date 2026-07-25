@@ -1,9 +1,11 @@
 <script setup>
 import { onMounted, onBeforeUnmount } from 'vue'
 import { useSettings } from '../composables/useSettings'
+import { useTheme } from '../composables/useTheme'
 
 const emit = defineEmits(['close'])
 const { settings, t, setLocale } = useSettings()
+const { current, themes, apply } = useTheme()
 
 const locales = [
   { id: 'zh', label: '中文' },
@@ -30,6 +32,25 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       </div>
 
       <div class="settings-body">
+        <div class="setting-row">
+          <div class="setting-label">
+            <div class="setting-name">{{ t('settings.theme') }}</div>
+            <div class="setting-desc">{{ t('settings.themeDesc') }}</div>
+          </div>
+          <div class="theme-dots">
+            <div
+              v-for="th in themes"
+              :key="th.id"
+              class="theme-dot"
+              :class="[th.cls, { active: current === th.id }]"
+              :title="t('theme.' + th.id)"
+              role="button"
+              :aria-label="t('theme.' + th.id)"
+              @click="apply(th.id)"
+            ></div>
+          </div>
+        </div>
+
         <div class="setting-row">
           <div class="setting-label">
             <div class="setting-name">{{ t('settings.language') }}</div>
@@ -185,6 +206,48 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
   color: var(--fg);
   background: var(--surface);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--shadow-color) 30%, transparent);
+}
+
+/* Theme dots */
+.theme-dots {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--seed-fg) 6%, transparent);
+  border-radius: 18px;
+  flex-shrink: 0;
+}
+
+.theme-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.theme-dot:hover {
+  transform: scale(1.15);
+}
+
+.theme-dot.active {
+  border: 2px solid var(--fg);
+}
+
+.theme-dot.retro {
+  background: linear-gradient(135deg, #d4874e, #c9a96e);
+}
+
+.theme-dot.dark {
+  background: linear-gradient(135deg, #2dd4a8, #0f2027);
+}
+
+.theme-dot.light {
+  background: linear-gradient(135deg, #f8fafc, #94a3b8);
+}
+
+.theme-dot.minimal {
+  background: linear-gradient(135deg, #fafafa, #171717);
 }
 
 /* Toggle switch (matches the EQ panel switch) */

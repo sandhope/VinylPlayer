@@ -42,7 +42,7 @@
   --seed-primary: #2dd4a8;
   --seed-accent: #67e8c3;
   --seed-surface: #132420;
-  --seed-radius: 14px;
+  --seed-radius: 12px;
 }
 
 [data-theme="light"] {
@@ -51,7 +51,7 @@
   --seed-primary: #3b82f6;
   --seed-accent: #06b6d4;
   --seed-surface: #ffffff;
-  --seed-radius: 10px;
+  --seed-radius: 12px;
 }
 
 [data-theme="minimal"] {
@@ -60,7 +60,7 @@
   --seed-primary: #171717;
   --seed-accent: #737373;
   --seed-surface: #ffffff;
-  --seed-radius: 4px;
+  --seed-radius: 12px;
 }
 
 /* ===== Reset & Base ===== */

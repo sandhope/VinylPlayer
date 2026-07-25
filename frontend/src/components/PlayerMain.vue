@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
 import { useSettings } from '../composables/useSettings'
 import { formatTime } from '../composables/format'
-import ThemeSwitcher from './ThemeSwitcher.vue'
 
 const {
   state,
@@ -92,8 +91,6 @@ const repeatTitle = computed(() =>
 
 <template>
   <main class="main-content">
-    <ThemeSwitcher />
-
     <div class="album-section">
       <div class="vinyl-container">
         <div class="vinyl-disc" :class="{ spinning: state.isPlaying }">

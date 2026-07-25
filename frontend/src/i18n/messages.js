@@ -94,6 +94,8 @@ export const messages = {
     },
     settings: {
       title: '设置',
+      theme: '主题',
+      themeDesc: '切换界面配色风格',
       language: '语言',
       languageDesc: '切换界面显示语言',
       rememberProgress: '记住播放进度',
@@ -191,6 +193,8 @@ export const messages = {
     },
     settings: {
       title: 'Settings',
+      theme: 'Theme',
+      themeDesc: 'Switch the color scheme',
       language: 'Language',
       languageDesc: 'Switch the interface language',
       rememberProgress: 'Remember playback position',
