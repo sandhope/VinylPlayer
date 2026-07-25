@@ -24,7 +24,8 @@ const lyricsOpen = ref(false)
 const settingsOpen = ref(false)
 const aboutOpen = ref(false)
 const busy = ref(false)
-const sidebarOpen = ref(true)
+const SIDEBAR_KEY = 'vinyl-player-sidebar-collapsed'
+const sidebarOpen = ref(localStorage.getItem(SIDEBAR_KEY) !== '1')
 
 // Keep the player's position-memory feature in sync with the user's setting,
 // applied immediately so it's in effect before the first track loads.
@@ -44,6 +45,11 @@ function openLyrics() {
 }
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
+  try {
+    localStorage.setItem(SIDEBAR_KEY, sidebarOpen.value ? '0' : '1')
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 // ---- Window-level right-click menu on the play area (mirrors ReelPlayer) ----
