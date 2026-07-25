@@ -11,8 +11,8 @@ import AboutPanel from './components/AboutPanel.vue'
 import { usePlayer, setBase, hydrateProgress, setProgressBackend, setRememberEnabled, flushProgress } from './composables/usePlayer'
 import { useTheme } from './composables/useTheme'
 import { useSettings } from './composables/useSettings'
-import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL, RemoveTrack, ClearLibrary, GetProgress, SaveProgress, ClearProgress } from '../wailsjs/go/main/App'
-import { EventsOn, WindowFullscreen, WindowUnfullscreen, WindowIsFullscreen, WindowSetAlwaysOnTop } from '../wailsjs/runtime/runtime'
+import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL, RemoveTrack, ClearLibrary, GetProgress, SaveProgress, ClearProgress, AddPaths } from '../wailsjs/go/main/App'
+import { OnFileDrop, OnFileDropOff, WindowFullscreen, WindowUnfullscreen, WindowIsFullscreen, WindowSetAlwaysOnTop } from '../wailsjs/runtime/runtime'
 import { Quit } from '../wailsjs/go/main/App'
 
 const { state, setTracks, addTracks, removeTrack, clearTracks, loadIndex, togglePlay, next, prev } = usePlayer()
@@ -155,20 +155,31 @@ function onKeydown(e) {
   }
 }
 
-let unbindDrop = null
+// Registering OnFileDrop on the JS side is what installs Wails' window-level
+// dragover/drop listeners (which preventDefault). Without it, WebView2 falls
+// back to its native behavior and opens dropped files in a popup window.
+async function onFilesDropped(x, y, paths) {
+  if (!paths || !paths.length) return
+  try {
+    const tracks = await AddPaths(paths)
+    if (tracks && tracks.length) {
+      // Same semantics as onAddFiles: switch to (and play) the first dropped
+      // track, even if it was already in the playlist.
+      addTracks(tracks)
+      const idx = state.tracks.findIndex((t) => t.id === tracks[0].id)
+      if (idx >= 0) loadIndex(idx, true)
+    }
+  } catch (e) {
+    console.warn('AddPaths failed:', e)
+  }
+}
 
 onMounted(async () => {
   initTheme()
   window.addEventListener('keydown', onKeydown)
-  // Native OS file drops (audio files or folders) are imported by the backend,
-  // which emits the freshly scanned tracks back to us.
-  unbindDrop = EventsOn('tracks:dropped', (tracks) => {
-    if (tracks && tracks.length) {
-      const wasEmpty = state.tracks.length === 0
-      addTracks(tracks)
-      if (wasEmpty) loadIndex(0, false)
-    }
-  })
+  // useDropTarget=false: accept drops anywhere in the window, not only over
+  // elements carrying the --wails-drop-target CSS property.
+  OnFileDrop(onFilesDropped, false)
   // Wire playback-progress persistence and seed saved positions before the
   // first track loads so it can resume where the user left off.
   setProgressBackend({
@@ -205,7 +216,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', flushProgress)
   document.removeEventListener('click', closeMainMenu)
   flushProgress()
-  if (unbindDrop) unbindDrop()
+  OnFileDropOff()
 })
 </script>
 
@@ -284,8 +295,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex: 1;
   overflow: hidden;
-  /* Opt the whole content area in as a native file-drop target (Wails). */
-  --wails-drop-target: drop;
 }
 
 .stage {

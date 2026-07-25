@@ -39,7 +39,7 @@ func main() {
 			Assets: assets,
 		},
 		// Enable native OS file drops so users can drag audio files/folders onto
-		// the window. Elements opt in via the --wails-drop-target CSS property.
+		// the window. The frontend registers OnFileDrop to accept drops anywhere.
 		DragAndDrop: &options.DragAndDrop{
 			EnableFileDrop:  true,
 			CSSDropProperty: "--wails-drop-target",

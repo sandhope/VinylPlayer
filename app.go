@@ -39,16 +39,11 @@ func (a *App) MediaBaseURL() string {
 }
 
 // startup is called when the app starts. The context is saved so we can call
-// the runtime methods, and we register the native file-drop handler so tracks
-// dragged onto the window get imported.
+// the runtime methods. File drops are handled on the frontend: the JS
+// runtime's OnFileDrop installs the window drop listeners and calls the
+// bound AddPaths.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	runtime.OnFileDrop(ctx, func(_, _ int, paths []string) {
-		tracks := a.AddPaths(paths)
-		if len(tracks) > 0 {
-			runtime.EventsEmit(ctx, "tracks:dropped", tracks)
-		}
-	})
 
 	// Launch the system-tray icon now that the runtime context is available,
 	// so its menu handlers can safely call the window controls.
