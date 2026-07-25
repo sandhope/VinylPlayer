@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import TitleBar from './components/TitleBar.vue'
 import Sidebar from './components/Sidebar.vue'
 import PlayerMain from './components/PlayerMain.vue'
@@ -12,11 +12,12 @@ import { usePlayer, setBase, hydrateProgress, setProgressBackend, setRememberEna
 import { useTheme } from './composables/useTheme'
 import { useSettings } from './composables/useSettings'
 import { GetInitialTracks, OpenFolder, OpenFiles, MediaBaseURL, RemoveTrack, ClearLibrary, GetProgress, SaveProgress, ClearProgress } from '../wailsjs/go/main/App'
-import { EventsOn } from '../wailsjs/runtime/runtime'
+import { EventsOn, WindowFullscreen, WindowUnfullscreen, WindowIsFullscreen, WindowSetAlwaysOnTop } from '../wailsjs/runtime/runtime'
+import { Quit } from '../wailsjs/go/main/App'
 
 const { state, setTracks, addTracks, removeTrack, clearTracks, loadIndex, togglePlay, next, prev } = usePlayer()
-const { init: initTheme } = useTheme()
-const { settings } = useSettings()
+const { init: initTheme, current, themes, apply: applyTheme } = useTheme()
+const { settings, t } = useSettings()
 
 const eqOpen = ref(false)
 const lyricsOpen = ref(false)
@@ -43,6 +44,45 @@ function openLyrics() {
 }
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
+}
+
+// ---- Window-level right-click menu on the play area (mirrors ReelPlayer) ----
+const mainMenu = ref({ open: false, x: 0, y: 0 })
+const themeSubmenu = ref(false)
+const alwaysOnTop = ref(false)
+
+function openMainMenu(e) {
+  e.preventDefault()
+  mainMenu.value = { open: true, x: e.clientX, y: e.clientY }
+}
+function closeMainMenu() {
+  mainMenu.value = { ...mainMenu.value, open: false }
+}
+const mainMenuStyle = computed(() => ({
+  left: mainMenu.value.x + 'px',
+  top: mainMenu.value.y + 'px',
+}))
+async function mainMenuFullscreen() {
+  closeMainMenu()
+  const isFull = await WindowIsFullscreen()
+  if (isFull) WindowUnfullscreen()
+  else WindowFullscreen()
+}
+function mainMenuToggleOnTop() {
+  alwaysOnTop.value = !alwaysOnTop.value
+  WindowSetAlwaysOnTop(alwaysOnTop.value)
+  closeMainMenu()
+}
+function mainMenuTheme(id) {
+  applyTheme(id)
+  closeMainMenu()
+}
+function mainMenuQuit() {
+  closeMainMenu()
+  Quit()
+}
+function onMainMenuKey(e) {
+  if (e.key === 'Escape') closeMainMenu()
 }
 
 async function onAddFolder() {
@@ -146,11 +186,15 @@ onMounted(async () => {
   // Best-effort save when the window is closing (periodic + pause saves cover
   // the rest).
   window.addEventListener('beforeunload', flushProgress)
+  document.addEventListener('click', closeMainMenu)
+  window.addEventListener('keydown', onMainMenuKey)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('keydown', onMainMenuKey)
   window.removeEventListener('beforeunload', flushProgress)
+  document.removeEventListener('click', closeMainMenu)
   flushProgress()
   if (unbindDrop) unbindDrop()
 })
@@ -167,7 +211,7 @@ onBeforeUnmount(() => {
       @remove-track="onRemoveTrack"
       @clear-all="onClearAll"
     />
-    <div class="stage">
+    <div class="stage" @contextmenu.prevent="openMainMenu($event)">
       <PlayerMain />
       <Transition name="panel-slide">
         <EqualizerPanel v-if="eqOpen" @close="eqOpen = false" />
@@ -192,6 +236,38 @@ onBeforeUnmount(() => {
   <Transition name="fade">
     <AboutPanel v-if="aboutOpen" @close="aboutOpen = false" />
   </Transition>
+
+  <Teleport to="body">
+    <div v-if="mainMenu.open" class="ctx-overlay" @click="closeMainMenu" @contextmenu.prevent="closeMainMenu">
+      <div class="ctx-menu" :style="mainMenuStyle" @click.stop>
+        <button class="ctx-item" @click="onAddFiles(); closeMainMenu()">{{ t('ctx.openFiles') }}</button>
+        <button class="ctx-item" @click="onAddFolder(); closeMainMenu()">{{ t('ctx.openFolder') }}</button>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item" @click="mainMenuFullscreen">{{ t('ctx.fullscreen') }}</button>
+        <button class="ctx-item" :class="{ active: alwaysOnTop }" @click="mainMenuToggleOnTop">
+          {{ t('ctx.alwaysOnTop') }}<span v-if="alwaysOnTop" class="ctx-check">✓</span>
+        </button>
+        <div class="ctx-item ctx-sub" @mouseenter="themeSubmenu = true" @mouseleave="themeSubmenu = false">
+          {{ t('ctx.theme') }}
+          <svg class="ctx-arrow" viewBox="0 0 24 24" width="16" height="16">
+            <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <div v-show="themeSubmenu" class="ctx-submenu">
+            <button
+              v-for="th in themes" :key="th.id"
+              class="ctx-item" :class="{ active: current === th.id }"
+              @click="mainMenuTheme(th.id)"
+            >{{ th.label }}<span v-if="current === th.id" class="ctx-check">✓</span></button>
+          </div>
+        </div>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item" @click="settingsOpen = true; closeMainMenu()">{{ t('ctx.settings') }}</button>
+        <button class="ctx-item" @click="aboutOpen = true; closeMainMenu()">{{ t('ctx.about') }}</button>
+        <div class="ctx-sep"></div>
+        <button class="ctx-item" @click="mainMenuQuit">{{ t('ctx.quit') }}</button>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>

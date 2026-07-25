@@ -36,6 +36,88 @@
   --knob-size: 14px;
 }
 
+/* ===== Right-click context menu (shared by the playlist menu & the window menu) ===== */
+.ctx-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.ctx-menu {
+  position: fixed;
+  min-width: 180px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--shadow-color) 50%, transparent);
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--fg);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  transition: background 0.1s, color 0.1s;
+}
+
+.ctx-item:hover {
+  background: color-mix(in srgb, var(--seed-primary) 15%, transparent);
+}
+
+.ctx-item.active {
+  color: var(--primary);
+}
+
+.ctx-check {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.ctx-item.ctx-danger {
+  color: var(--danger, #d9534f);
+}
+
+.ctx-item.ctx-danger:hover {
+  background: color-mix(in srgb, var(--danger, #d9534f) 14%, transparent);
+  color: var(--danger, #d9534f);
+}
+
+.ctx-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border);
+}
+
+.ctx-arrow {
+  color: var(--text-tertiary);
+}
+
+.ctx-sub {
+  position: relative;
+}
+
+.ctx-submenu {
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  min-width: 160px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--shadow-color) 40%, transparent);
+}
+
 [data-theme="dark"] {
   --seed-bg: #0a1210;
   --seed-fg: #e0f2ec;

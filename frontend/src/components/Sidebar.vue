@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { usePlayer } from '../composables/usePlayer'
 import { useSettings } from '../composables/useSettings'
 import { formatTime } from '../composables/format'
@@ -8,6 +8,11 @@ defineProps({
   busy: { type: Boolean, default: false },
 })
 const emit = defineEmits(['add-folder', 'add-files', 'remove-track', 'clear-all'])
+
+// The component renders a fragment (aside + Teleport menu), so Vue can't
+// auto-inherit the `class` (collapsed) App.vue passes in. Opt out of auto
+// inheritance and bind attrs manually to the aside so collapse keeps working.
+defineOptions({ inheritAttrs: false })
 
 const { state, loadIndex } = usePlayer()
 const { t } = useSettings()
@@ -85,11 +90,61 @@ function onClearClick() {
   confirmingClear.value = true
   confirmTimer = setTimeout(() => (confirmingClear.value = false), 2500)
 }
-onBeforeUnmount(() => clearTimeout(confirmTimer))
+
+// ---- Right-click context menu (mirrors ReelPlayer's playlist menu) ----
+// menu.row holds the track row object when right-clicking a track, or null
+// when right-clicking empty playlist space.
+const menu = ref({ open: false, x: 0, y: 0, row: null })
+
+function openMenu(row, e) {
+  e.preventDefault()
+  if (row) e.stopPropagation()
+  menu.value = { open: true, x: e.clientX, y: e.clientY, row }
+}
+
+function closeMenu() {
+  menu.value = { ...menu.value, open: false }
+}
+
+const menuStyle = computed(() => ({
+  left: menu.value.x + 'px',
+  top: menu.value.y + 'px',
+}))
+
+function onMenuPlay() {
+  if (menu.value.row) loadIndex(menu.value.row.index, true)
+  closeMenu()
+}
+function onMenuRemove() {
+  if (menu.value.row) emit('remove-track', menu.value.row.track.id)
+  closeMenu()
+}
+function onMenuAddFolder() {
+  emit('add-folder')
+  closeMenu()
+}
+function onMenuAddFiles() {
+  emit('add-files')
+  closeMenu()
+}
+
+function onMenuKey(e) {
+  if (e.key === 'Escape') closeMenu()
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeMenu)
+  window.addEventListener('keydown', onMenuKey)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeMenu)
+  window.removeEventListener('keydown', onMenuKey)
+  clearTimeout(confirmTimer)
+})
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" v-bind="$attrs">
     <div class="sidebar-header">
       <div class="header-left">
         <span class="sidebar-title">{{ t('sidebar.title') }}</span>
@@ -164,7 +219,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
       </button>
     </div>
 
-    <div class="playlist">
+    <div class="playlist" @contextmenu.prevent="openMenu(null, $event)">
       <template v-for="row in rows" :key="row.type === 'header' ? 'h:' + row.group.key : row.track.id">
         <div
           v-if="row.type === 'header'"
@@ -195,6 +250,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
           :class="{ active: row.index === state.currentIndex, 'in-group': viewMode !== 'list' }"
           @dblclick="loadIndex(row.index, true)"
           @click="loadIndex(row.index, true)"
+          @contextmenu.prevent="openMenu(row, $event)"
         >
           <span class="track-index">
             <template v-if="row.index === state.currentIndex && state.isPlaying">♪</template>
@@ -231,6 +287,21 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
       </div>
     </div>
   </aside>
+
+  <Teleport to="body">
+    <div v-if="menu.open" class="ctx-overlay" @click="closeMenu" @contextmenu.prevent="closeMenu">
+      <div class="ctx-menu" :style="menuStyle" @click.stop>
+        <template v-if="menu.row">
+          <button class="ctx-item" @click="onMenuPlay">{{ t('sidebar.ctxPlay') }}</button>
+          <button class="ctx-item ctx-danger" @click="onMenuRemove">{{ t('sidebar.ctxRemove') }}</button>
+        </template>
+        <template v-else>
+          <button class="ctx-item" @click="onMenuAddFolder">{{ t('sidebar.ctxAddFolder') }}</button>
+          <button class="ctx-item" @click="onMenuAddFiles">{{ t('sidebar.ctxAddFiles') }}</button>
+        </template>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
