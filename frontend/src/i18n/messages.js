@@ -40,6 +40,7 @@ export const messages = {
       lyricTickerTitle: '点击查看完整歌词',
       eq: '均衡器',
       lyrics: '歌词',
+      playlist: '播放列表',
     },
     player: {
       noTrack: '未选择曲目',
@@ -139,6 +140,7 @@ export const messages = {
       lyricTickerTitle: 'Click to view full lyrics',
       eq: 'Equalizer',
       lyrics: 'Lyrics',
+      playlist: 'Playlist',
     },
     player: {
       noTrack: 'No track selected',

@@ -23,6 +23,7 @@ const lyricsOpen = ref(false)
 const settingsOpen = ref(false)
 const aboutOpen = ref(false)
 const busy = ref(false)
+const sidebarOpen = ref(true)
 
 // Keep the player's position-memory feature in sync with the user's setting,
 // applied immediately so it's in effect before the first track loads.
@@ -39,6 +40,9 @@ function toggleLyrics() {
 function openLyrics() {
   lyricsOpen.value = true
   eqOpen.value = false
+}
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value
 }
 
 async function onAddFolder() {
@@ -157,6 +161,7 @@ onBeforeUnmount(() => {
   <div class="app-body">
     <Sidebar
       :busy="busy"
+      :class="{ collapsed: !sidebarOpen }"
       @add-folder="onAddFolder"
       @add-files="onAddFiles"
       @remove-track="onRemoveTrack"
@@ -172,13 +177,15 @@ onBeforeUnmount(() => {
       </Transition>
     </div>
   </div>
-  <StatusBar
-    :eq-open="eqOpen"
-    :lyrics-open="lyricsOpen"
-    @toggle-eq="toggleEq"
-    @toggle-lyrics="toggleLyrics"
-    @open-lyrics="openLyrics"
-  />
+    <StatusBar
+      :eq-open="eqOpen"
+      :lyrics-open="lyricsOpen"
+      :sidebar-open="sidebarOpen"
+      @toggle-eq="toggleEq"
+      @toggle-lyrics="toggleLyrics"
+      @toggle-sidebar="toggleSidebar"
+      @open-lyrics="openLyrics"
+    />
   <Transition name="fade">
     <SettingsPanel v-if="settingsOpen" @close="settingsOpen = false" />
   </Transition>

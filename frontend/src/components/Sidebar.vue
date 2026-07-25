@@ -235,13 +235,29 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
 
 <style scoped>
 .sidebar {
-  width: 300px;
+  --sidebar-width: 300px;
+  width: var(--sidebar-width);
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: background 0.4s ease;
+  overflow: hidden;
+  transition: width 0.28s ease, background 0.4s ease;
+}
+
+/* Keep inner content laid out at full width while the panel collapses, so it
+   gets clipped (wiped) instead of squished/reflowed. */
+.sidebar > * {
+  min-width: var(--sidebar-width);
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+  padding: 0;
 }
 
 .sidebar-header {

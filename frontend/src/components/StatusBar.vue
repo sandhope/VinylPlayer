@@ -6,8 +6,9 @@ import { useSettings } from '../composables/useSettings'
 defineProps({
   eqOpen: { type: Boolean, default: false },
   lyricsOpen: { type: Boolean, default: false },
+  sidebarOpen: { type: Boolean, default: true },
 })
-const emit = defineEmits(['toggle-eq', 'toggle-lyrics', 'open-lyrics'])
+const emit = defineEmits(['toggle-eq', 'toggle-lyrics', 'toggle-sidebar', 'open-lyrics'])
 
 const { state, currentTrack } = usePlayer()
 const { t } = useSettings()
@@ -54,6 +55,13 @@ const currentLyric = computed(() => {
 <template>
   <footer class="bottom-bar">
     <div class="bottom-left">
+      <button class="mode-btn playlist-toggle" :class="{ active: sidebarOpen }" :title="t('status.playlist')" @click="emit('toggle-sidebar')">
+        <svg viewBox="0 0 24 24" width="16" height="16">
+          <path d="M3 6h10M3 10h10M3 14h7M3 18h7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <path d="M17 14v7l5-3.5L17 14z" fill="currentColor" />
+        </svg>
+      </button>
+      <span class="ctrl-sep"></span>
       <div class="status-indicator" :class="{ idle: !state.isPlaying }"></div>
       <span class="status-text">{{ statusText }}</span>
     </div>
@@ -86,7 +94,7 @@ const currentLyric = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 20px 0 12px;
   flex-shrink: 0;
   transition: background 0.4s ease;
 }
@@ -94,7 +102,7 @@ const currentLyric = computed(() => {
 .bottom-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
   max-width: 40%;
 }
@@ -195,5 +203,21 @@ const currentLyric = computed(() => {
 
 .mode-btn.active {
   color: var(--primary);
+}
+
+.playlist-toggle {
+  padding: 4px 6px;
+  margin-right: -2px;
+}
+
+.playlist-toggle svg {
+  display: block;
+}
+
+.ctrl-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 2px;
 }
 </style>
