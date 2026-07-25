@@ -114,9 +114,12 @@ async function onAddFiles() {
   try {
     const tracks = await OpenFiles()
     if (tracks && tracks.length) {
-      const wasEmpty = state.tracks.length === 0
+      // Add any new tracks, then always switch to (and play) the first opened
+      // track — even when it is already in the playlist, so re-opening an
+      // existing track still jumps to it instead of doing nothing.
       addTracks(tracks)
-      if (wasEmpty) loadIndex(0, false)
+      const idx = state.tracks.findIndex((t) => t.id === tracks[0].id)
+      if (idx >= 0) loadIndex(idx, true)
     }
   } catch (e) {
     console.warn('OpenFiles failed:', e)
