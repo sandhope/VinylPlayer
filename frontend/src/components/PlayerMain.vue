@@ -84,9 +84,11 @@ function onVolUp() {
   window.removeEventListener('pointerup', onVolUp)
 }
 
-const repeatTitle = computed(() =>
-  state.repeat === 'one' ? t('player.repeatOne') : state.repeat === 'all' ? t('player.repeatAll') : t('player.repeat')
-)
+const repeatLabel = computed(() => {
+  if (state.repeat === 'one') return t('player.repeatOne')
+  if (state.repeat === 'all') return t('player.repeatAll')
+  return t('player.repeatOff')
+})
 </script>
 
 <template>
@@ -170,8 +172,8 @@ const repeatTitle = computed(() =>
       <button
         class="ctrl-btn small"
         :class="{ 'is-on': state.repeat !== 'off' }"
-        :title="repeatTitle"
-        :aria-label="t('player.repeat')"
+        :title="repeatLabel"
+        :aria-label="repeatLabel"
         @click="cycleRepeat"
       >
         <svg class="icon" viewBox="0 0 24 24">

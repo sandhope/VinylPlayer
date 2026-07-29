@@ -44,10 +44,6 @@ export const messages = {
       quit: '退出',
     },
     status: {
-      shuffle: '随机播放',
-      repeatOne: '单曲循环',
-      repeatAll: '列表循环',
-      sequential: '顺序播放',
       ready: '就绪 · 等待播放',
       playing: '正在播放',
       paused: '已暂停',
@@ -64,9 +60,9 @@ export const messages = {
       next: '下一首',
       playPause: '播放/暂停',
       playPauseAria: '播放或暂停',
+      repeatOff: '循环关闭',
       repeatOne: '单曲循环',
       repeatAll: '列表循环',
-      repeat: '循环播放',
       volume: '音量',
     },
     lyrics: {
@@ -158,10 +154,6 @@ export const messages = {
       quit: 'Quit',
     },
     status: {
-      shuffle: 'Shuffle',
-      repeatOne: 'Repeat One',
-      repeatAll: 'Repeat All',
-      sequential: 'Sequential',
       ready: 'Ready · waiting to play',
       playing: 'Playing',
       paused: 'Paused',
@@ -178,9 +170,9 @@ export const messages = {
       next: 'Next',
       playPause: 'Play/Pause',
       playPauseAria: 'Play or pause',
+      repeatOff: 'Repeat Off',
       repeatOne: 'Repeat One',
       repeatAll: 'Repeat All',
-      repeat: 'Repeat',
       volume: 'Volume',
     },
     lyrics: {

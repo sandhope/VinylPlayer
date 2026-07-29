@@ -10,30 +10,19 @@ defineProps({
 })
 const emit = defineEmits(['toggle-eq', 'toggle-lyrics', 'toggle-sidebar', 'open-lyrics'])
 
-const { state, currentTrack } = usePlayer()
+const { state, currentTrack, cycleRepeat, toggleShuffle } = usePlayer()
 const { t } = useSettings()
 
-const playMode = computed(() => {
-  if (state.shuffle) return t('status.shuffle')
-  if (state.repeat === 'one') return t('status.repeatOne')
-  if (state.repeat === 'all') return t('status.repeatAll')
-  return t('status.sequential')
-})
+// The two mode buttons mirror PlayerMain's shuffle / repeat buttons 1:1 and
+// share the same player.* labels: shuffle is an on/off toggle (随机播放 /
+// 顺序播放), repeat is a 3-state cycle (循环关闭 / 列表循环 / 单曲循环).
+const shuffleLabel = computed(() => (state.shuffle ? t('player.shuffleOn') : t('player.shuffleOff')))
 
-function cyclePlayMode() {
-  // 顺序 -> 列表循环 -> 单曲循环 -> 随机 -> 顺序
-  if (state.shuffle) {
-    state.shuffle = false
-    state.repeat = 'off'
-  } else if (state.repeat === 'off') {
-    state.repeat = 'all'
-  } else if (state.repeat === 'all') {
-    state.repeat = 'one'
-  } else {
-    state.repeat = 'off'
-    state.shuffle = true
-  }
-}
+const repeatLabel = computed(() => {
+  if (state.repeat === 'one') return t('player.repeatOne')
+  if (state.repeat === 'all') return t('player.repeatAll')
+  return t('player.repeatOff')
+})
 
 const statusText = computed(() => {
   const track = currentTrack.value
@@ -79,7 +68,8 @@ const currentLyric = computed(() => {
       </Transition>
     </div>
     <div class="bottom-right">
-      <button class="mode-btn" @click="cyclePlayMode">{{ playMode }}</button>
+      <button class="mode-btn" :class="{ active: state.shuffle }" @click="toggleShuffle">{{ shuffleLabel }}</button>
+      <button class="mode-btn" :class="{ active: state.repeat !== 'off' }" @click="cycleRepeat">{{ repeatLabel }}</button>
       <button class="mode-btn" :class="{ active: eqOpen }" @click="emit('toggle-eq')">{{ t('status.eq') }}</button>
       <button class="mode-btn" :class="{ active: lyricsOpen }" @click="emit('toggle-lyrics')">{{ t('status.lyrics') }}</button>
     </div>

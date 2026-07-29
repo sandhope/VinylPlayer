@@ -364,6 +364,10 @@ function toggleShuffle() {
 }
 
 function cycleRepeat() {
+  // Shuffle and repeat are orthogonal toggles (Spotify-style paradigm):
+  // cycling repeat must not touch the shuffle flag. Shuffle playback never
+  // auto-stops (pickNextIndex always yields a track), so repeat semantics
+  // only matter in ordered mode.
   state.repeat = state.repeat === 'off' ? 'all' : state.repeat === 'all' ? 'one' : 'off'
 }
 
