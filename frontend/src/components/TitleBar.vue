@@ -1,9 +1,27 @@
 <script setup>
-import { WindowMinimise, WindowToggleMaximise, HideToTray } from '../../wailsjs/go/main/App'
+import { ref, onMounted } from 'vue'
+import { WindowMinimise, HideToTray } from '../../wailsjs/go/main/App'
 import { useSettings } from '../composables/useSettings'
 
 defineEmits(['open-settings', 'open-about'])
 const { t } = useSettings()
+
+// 跟踪窗口最大化状态，切换「最大化 / 还原」图标（与 Pixel 一致）
+const isMax = ref(false)
+function syncMax() {
+  try {
+    window.runtime?.WindowIsMaximised?.().then((v) => {
+      isMax.value = !!v
+    })
+  } catch (e) {
+    /* 浏览器预览时 window.runtime 不存在，忽略 */
+  }
+}
+function toggleMax() {
+  window.runtime?.WindowToggleMaximise?.()
+  setTimeout(syncMax, 60)
+}
+onMounted(() => syncMax())
 </script>
 
 <template>
@@ -36,9 +54,13 @@ const { t } = useSettings()
           <rect y="5" width="12" height="1.5" fill="currentColor" />
         </svg>
       </button>
-      <button class="win-btn" :aria-label="t('titlebar.maximize')" @click="WindowToggleMaximise">
-        <svg width="12" height="12" viewBox="0 0 12 12">
+      <button class="win-btn" :aria-label="t('titlebar.maximize')" @click="toggleMax">
+        <svg v-if="!isMax" width="12" height="12" viewBox="0 0 12 12">
           <rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none" />
+        </svg>
+        <svg v-else width="12" height="12" viewBox="0 0 12 12">
+          <rect x="3" y="1" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="none" />
+          <rect x="1" y="3" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.4" fill="var(--surface-sunken)" />
         </svg>
       </button>
       <button class="win-btn close" :aria-label="t('titlebar.close')" @click="HideToTray">
